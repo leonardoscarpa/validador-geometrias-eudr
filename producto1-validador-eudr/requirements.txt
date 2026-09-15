@@ -1,0 +1,7 @@
+geopandas>=1.1
+shapely>=2.1
+pyproj>=3.8
+pandas>=2.0
+openpyxl>=3.1
+reportlab>=4.0
+pycountry>=24.0

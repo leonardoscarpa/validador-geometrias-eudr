@@ -1,0 +1,188 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ProducerName": "Yerbatera San Ignacio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Chacra 3",
+        "Area": 1.8,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -54.59,
+          -26.4
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ProducerName": "Yerbatera San Ignacio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Chacra 5",
+        "Area": 4.3,
+        "CommonName": "Eucalipto",
+        "ScientificName": "Eucalyptus grandis"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -54.570984,
+              -26.400984
+            ],
+            [
+              -54.569016,
+              -26.400984
+            ],
+            [
+              -54.569016,
+              -26.399016
+            ],
+            [
+              -54.570984,
+              -26.399016
+            ],
+            [
+              -54.570984,
+              -26.400984
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ProducerName": "Yerbatera San Ignacio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Chacra 11",
+        "Area": 4.5,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -54.601006,
+              -26.341006
+            ],
+            [
+              -54.598994,
+              -26.341006
+            ],
+            [
+              -54.598994,
+              -26.338994
+            ],
+            [
+              -54.601006,
+              -26.338994
+            ],
+            [
+              -54.601006,
+              -26.341006
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ProducerName": "Yerbatera San Ignacio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Chacra 15",
+        "Area": 2.0,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -54.6,
+          -26.32
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ProducerName": "Yerbatera San Ignacio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Chacra 19",
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -54.6,
+          -26.3
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ProducerName": "Yerbatera San Ignacio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Chacra 25",
+        "Area": 2.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -54.6,
+          -26.27
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ProducerName": "Yerbatera San Ignacio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Chacra 27",
+        "Area": 1.5,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -54.601837,
+              -26.261837
+            ],
+            [
+              -54.598163,
+              -26.261837
+            ],
+            [
+              -54.598163,
+              -26.258163
+            ],
+            [
+              -54.601837,
+              -26.258163
+            ],
+            [
+              -54.601837,
+              -26.261837
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

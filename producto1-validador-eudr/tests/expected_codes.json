@@ -1,0 +1,111 @@
+{
+  "geojson": {
+    "CTES-001": [],
+    "CTES-002": [],
+    "CTES-003-LINESTRING": [
+      "GEOM_TYPE_PROHIBITED"
+    ],
+    "CTES-004-GEOMCOLLECTION": [
+      "GEOM_TYPE_PROHIBITED"
+    ],
+    "CTES-005-HOLE": [
+      "POLY_HAS_HOLES"
+    ],
+    "CTES-006-UNCLOSED": [
+      "POLY_NOT_CLOSED"
+    ],
+    "CTES-007-SELFINTERSECT": [
+      "GEOM_SELF_INTERSECTION"
+    ],
+    "CTES-008-PROPCASE": [
+      "PROPERTY_CASE"
+    ],
+    "CTES-009-PRECISION": [
+      "COORD_PRECISION"
+    ],
+    "CTES-010-COUNTRYMISMATCH": [
+      "COUNTRY_MISMATCH"
+    ],
+    "CTES-011-INVALIDISO": [
+      "COUNTRY_INVALID_ISO"
+    ],
+    "CTES-012-COUNTRYMISSING": [
+      "COUNTRY_MISSING"
+    ],
+    "CTES-013-AREASTRING": [
+      "AREA_NOT_NUMERIC"
+    ],
+    "CTES-014-POINT-NOAREA": [
+      "POINT_NO_AREA"
+    ],
+    "CTES-015-4HAVIOLATION": [
+      "RULE_4HA_VIOLATION"
+    ],
+    "CTES-016-TOOFEWVERTICES": [
+      "POLY_TOO_FEW_VERTICES"
+    ],
+    "CTES-017-OVERLAP-A": [
+      "PARCELS_OVERLAP"
+    ],
+    "CTES-017-OVERLAP-B": [
+      "PARCELS_OVERLAP"
+    ],
+    "CTES-018-NOSPECIES": [
+      "SPECIES_MISSING"
+    ],
+    "CTES-019-OUTOFRANGE": [
+      "COORD_OUT_OF_RANGE"
+    ],
+    "CTES-020-DUP": [
+      "DUPLICATE_PARCEL_ID"
+    ],
+    "CTES-021-AREAMISMATCH": [
+      "AREA_MISMATCH"
+    ]
+  },
+  "tabular": {
+    "MSNS-001": [],
+    "MSNS-002": [
+      "ING_AUTOCLOSE"
+    ],
+    "MSNS-003-MISSINGLATLON": [
+      "ING_MISSING_LATLON"
+    ],
+    "MSNS-004-TWOVERTICES": [
+      "ING_TWO_VERTICES"
+    ],
+    "MSNS-005-INCONSISTENT": [
+      "ING_METADATA_INCONSISTENT"
+    ],
+    "MSNS-006-LATLONSWAP": [
+      "COUNTRY_MISMATCH"
+    ],
+    "MSNS-007-PRECISION": [
+      "COORD_PRECISION"
+    ],
+    "MSNS-008-4HAVIOLATION": [
+      "RULE_4HA_VIOLATION"
+    ],
+    "MSNS-009-NOAREA": [
+      "POINT_NO_AREA"
+    ],
+    "MSNS-010-OVERLAP-A": [
+      "PARCELS_OVERLAP"
+    ],
+    "MSNS-010-OVERLAP-B": [
+      "PARCELS_OVERLAP"
+    ],
+    "MSNS-011-INVALIDISO": [
+      "COUNTRY_INVALID_ISO"
+    ],
+    "MSNS-012-NOSPECIES": [
+      "SPECIES_MISSING"
+    ],
+    "MSNS-013-AREAMISMATCH": [
+      "AREA_MISMATCH"
+    ],
+    "MSNS-014-SELFINTERSECT": [
+      "GEOM_SELF_INTERSECTION"
+    ]
+  }
+}

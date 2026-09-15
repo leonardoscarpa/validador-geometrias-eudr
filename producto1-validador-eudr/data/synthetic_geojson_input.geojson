@@ -1,0 +1,724 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-001",
+        "ProducerName": "Forestal Don Aparicio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Establecimiento La Loma",
+        "Area": 4.2,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus elliottii"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.00098,
+              -28.05098
+            ],
+            [
+              -55.99902,
+              -28.05098
+            ],
+            [
+              -55.99902,
+              -28.04902
+            ],
+            [
+              -56.00098,
+              -28.04902
+            ],
+            [
+              -56.00098,
+              -28.05098
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-002",
+        "ProducerName": "Forestal Don Aparicio",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Potrero Norte",
+        "Area": 2.3,
+        "CommonName": "Eucalipto",
+        "ScientificName": "Eucalyptus grandis"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -56.02,
+          -28.03
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-003-LINESTRING",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Linde Este",
+        "Area": 3
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -56.01,
+            -28.06
+          ],
+          [
+            -56.0,
+            -28.05
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-004-GEOMCOLLECTION",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Lote Mixto",
+        "Area": 3
+      },
+      "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+          {
+            "type": "Point",
+            "coordinates": [
+              -56.0,
+              -28.05
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-005-HOLE",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Rodal con isla nativa",
+        "Area": 8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.001512,
+              -28.031512
+            ],
+            [
+              -55.998488,
+              -28.031512
+            ],
+            [
+              -55.998488,
+              -28.028488
+            ],
+            [
+              -56.001512,
+              -28.028488
+            ],
+            [
+              -56.001512,
+              -28.031512
+            ]
+          ],
+          [
+            [
+              -56.000676,
+              -28.030676
+            ],
+            [
+              -55.999324,
+              -28.030676
+            ],
+            [
+              -55.999324,
+              -28.029324
+            ],
+            [
+              -56.000676,
+              -28.029324
+            ],
+            [
+              -56.000676,
+              -28.030676
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-006-UNCLOSED",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 7",
+        "Area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -28.020956
+            ],
+            [
+              -55.999044,
+              -28.020956
+            ],
+            [
+              -55.999044,
+              -28.019044
+            ],
+            [
+              -56.000956,
+              -28.019044
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-007-SELFINTERSECT",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 8",
+        "Area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -28.010956
+            ],
+            [
+              -55.999044,
+              -28.009044000000003
+            ],
+            [
+              -55.999044,
+              -28.010956
+            ],
+            [
+              -56.000956,
+              -28.009044000000003
+            ],
+            [
+              -56.000956,
+              -28.010956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-008-PROPCASE",
+        "producercountry": "AR",
+        "productionplace": "Cuartel 9",
+        "area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -28.000956
+            ],
+            [
+              -55.999044,
+              -28.000956
+            ],
+            [
+              -55.999044,
+              -27.999044
+            ],
+            [
+              -56.000956,
+              -27.999044
+            ],
+            [
+              -56.000956,
+              -28.000956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-009-PRECISION",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 10",
+        "Area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.00095583537904,
+              -27.99095583537904
+            ],
+            [
+              -55.99904391770739,
+              -27.99095583537904
+            ],
+            [
+              -55.99904391770739,
+              -27.989043917707384
+            ],
+            [
+              -56.00095583537904,
+              -27.989043917707384
+            ],
+            [
+              -56.00095583537904,
+              -27.99095583537904
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-010-COUNTRYMISMATCH",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Supuesto lote correntino",
+        "Area": 3
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -53.45,
+          -24.9
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-011-INVALIDISO",
+        "ProducerCountry": "ARG",
+        "ProductionPlace": "Cuartel 11",
+        "Area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -27.980956
+            ],
+            [
+              -55.999044,
+              -27.980956
+            ],
+            [
+              -55.999044,
+              -27.979044
+            ],
+            [
+              -56.000956,
+              -27.979044
+            ],
+            [
+              -56.000956,
+              -27.980956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-012-COUNTRYMISSING",
+        "ProductionPlace": "Cuartel 12",
+        "Area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -27.970956
+            ],
+            [
+              -55.999044,
+              -27.970956
+            ],
+            [
+              -55.999044,
+              -27.969044
+            ],
+            [
+              -56.000956,
+              -27.969044
+            ],
+            [
+              -56.000956,
+              -27.970956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-013-AREASTRING",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 13",
+        "Area": "doce"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -27.960956
+            ],
+            [
+              -55.999044,
+              -27.960956
+            ],
+            [
+              -55.999044,
+              -27.959044
+            ],
+            [
+              -56.000956,
+              -27.959044
+            ],
+            [
+              -56.000956,
+              -27.960956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-014-POINT-NOAREA",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 14"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -56.0,
+          -28.1
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-015-4HAVIOLATION",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 15",
+        "Area": 15
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -56.01,
+          -28.11
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-016-TOOFEWVERTICES",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 16",
+        "Area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.003,
+              -27.95
+            ],
+            [
+              -55.997,
+              -27.95
+            ],
+            [
+              -56.003,
+              -27.95
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-017-OVERLAP-A",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 17A",
+        "Area": 10
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.001511,
+              -27.941511
+            ],
+            [
+              -55.998489,
+              -27.941511
+            ],
+            [
+              -55.998489,
+              -27.938489
+            ],
+            [
+              -56.001511,
+              -27.938489
+            ],
+            [
+              -56.001511,
+              -27.941511
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-017-OVERLAP-B",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 17B",
+        "Area": 10
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000302,
+              -27.941511
+            ],
+            [
+              -55.99728,
+              -27.941511
+            ],
+            [
+              -55.99728,
+              -27.938489
+            ],
+            [
+              -56.000302,
+              -27.938489
+            ],
+            [
+              -56.000302,
+              -27.941511
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-018-NOSPECIES",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 18",
+        "Area": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -27.930956
+            ],
+            [
+              -55.999044,
+              -27.930956
+            ],
+            [
+              -55.999044,
+              -27.929044
+            ],
+            [
+              -56.000956,
+              -27.929044
+            ],
+            [
+              -56.000956,
+              -27.930956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-019-OUTOFRANGE",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 19",
+        "Area": 2
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -56.0,
+          -95.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-020-DUP",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 20 (primera)",
+        "Area": 4,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -27.920956
+            ],
+            [
+              -55.999044,
+              -27.920956
+            ],
+            [
+              -55.999044,
+              -27.919044
+            ],
+            [
+              -56.000956,
+              -27.919044
+            ],
+            [
+              -56.000956,
+              -27.920956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-020-DUP",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 20 (segunda, error de carga)",
+        "Area": 4,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.000956,
+              -27.910956
+            ],
+            [
+              -55.999044,
+              -27.910956
+            ],
+            [
+              -55.999044,
+              -27.909044
+            ],
+            [
+              -56.000956,
+              -27.909044
+            ],
+            [
+              -56.000956,
+              -27.910956
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ParcelID": "CTES-021-AREAMISMATCH",
+        "ProducerCountry": "AR",
+        "ProductionPlace": "Cuartel 21",
+        "Area": 2,
+        "CommonName": "Pino",
+        "ScientificName": "Pinus taeda"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -56.00185,
+              -27.90185
+            ],
+            [
+              -55.99815,
+              -27.90185
+            ],
+            [
+              -55.99815,
+              -27.89815
+            ],
+            [
+              -56.00185,
+              -27.89815
+            ],
+            [
+              -56.00185,
+              -27.90185
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
