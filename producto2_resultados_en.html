@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EUDR Deforestation Screening: Results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root {
+    --canopy-900: #12241b;
+    --canopy-700: #24402f;
+    --canopy-600: #33553f;
+    --parchment: #f3efe2;
+    --parchment-dim: #e7e1d0;
+    --ink: #1c2620;
+    --moss: #8db07f;
+    --moss-deep: #4c7248;
+    --ember: #e2842a;
+    --ember-deep: #a85a12;
+    --signal: #d7f34c;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--parchment); color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .display { font-family: 'Fraunces', Georgia, serif; }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+  a { color: inherit; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    background: radial-gradient(ellipse 900px 500px at 15% -10%, var(--canopy-600), transparent),
+                var(--canopy-900);
+    color: var(--parchment);
+    padding: 72px 0 56px;
+  }
+  .hero .top-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 40px; margin-bottom: 34px; flex-wrap: wrap;
+  }
+  .hero .label {
+    font-size: 13.5px; color: #a9c2ab; padding-top: 2px;
+  }
+  .hero .purpose {
+    max-width: 360px; font-size: 13px; line-height: 1.6; color: #b9c6b2;
+    border-left: 2px solid var(--signal); padding-left: 16px;
+  }
+  .hero .purpose strong { color: var(--parchment); font-weight: 600; display: block; margin-bottom: 4px; }
+  .hero h1 {
+    font-size: clamp(28px, 4.4vw, 47px); line-height: 1.16; font-weight: 500;
+    margin: 0 0 26px; max-width: 16ch; letter-spacing: -0.01em;
+  }
+  .hero h1 em {
+    font-style: italic; font-weight: 500; color: var(--signal);
+  }
+  .hero .sub {
+    font-size: 17px; line-height: 1.65; max-width: 62ch; color: #d9dfd2; margin: 0 0 8px;
+  }
+  .hero .sub strong { color: var(--parchment); font-weight: 600; }
+  .hero .caveat {
+    font-size: 13px; color: #8fa28a; max-width: 60ch; margin-top: 20px; line-height: 1.6;
+  }
+
+  /* ---------- MAP ---------- */
+  .map-section { background: var(--canopy-900); padding: 0 0 64px; }
+  #map { height: 480px; width: 100%; background: #1a2e22; }
+  .legend-row {
+    display: flex; gap: 26px; flex-wrap: wrap; padding: 18px 0 0;
+    font-size: 13.5px; color: #cdd6c6;
+  }
+  .legend-row span { display: inline-flex; align-items: center; gap: 8px; }
+  .sw { width: 13px; height: 13px; border-radius: 3px; display: inline-block; }
+  .sw.moss { background: var(--moss); }
+  .sw.ember { background: var(--ember); }
+
+  /* ---------- RESULT CARDS ---------- */
+  .results { padding: 64px 0 20px; }
+  .results h2 { font-size: 26px; font-weight: 500; margin: 0 0 6px; }
+  .results > .wrap > p { color: #56635a; font-size: 15px; margin: 0 0 34px; max-width: 62ch; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 8px; }
+  @media (max-width: 820px) { .cards { grid-template-columns: 1fr; } }
+
+  .card {
+    background: white; border: 1px solid #ddd6c2; border-radius: 4px;
+    padding: 24px 22px; position: relative;
+  }
+  .card.flagged {
+    background: #241608; border: 1px solid var(--ember-deep); color: var(--parchment);
+  }
+  .card .verdict-tag {
+    font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 3px;
+    display: inline-block; margin-bottom: 16px;
+  }
+  .card:not(.flagged) .verdict-tag { background: #e6efe1; color: var(--moss-deep); }
+  .card.flagged .verdict-tag { background: var(--ember); color: #241608; }
+  .card h3 { font-size: 18px; font-weight: 500; margin: 0 0 4px; }
+  .card .loc { font-size: 13px; color: #7c8a76; margin-bottom: 18px; }
+  .card.flagged .loc { color: #c7ab8f; }
+  .card dl { margin: 0; font-size: 13.5px; }
+  .card dl div { display: flex; justify-content: space-between; padding: 7px 0; border-top: 1px solid #ece6d5; }
+  .card.flagged dl div { border-top: 1px solid #3a2818; }
+  .card dl dt { color: #7c8a76; }
+  .card.flagged dl dt { color: #b89b7e; }
+  .card dl dd { margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; }
+
+  /* ---------- METHODOLOGY ---------- */
+  .method { padding: 56px 0 64px; }
+  .method h2 { font-size: 24px; font-weight: 500; margin: 0 0 28px; }
+  .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+  @media (max-width: 820px) { .method-grid { grid-template-columns: 1fr; } }
+  .method-grid h4 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+  .method-grid p { font-size: 14.5px; line-height: 1.65; color: #3d4a3e; margin: 0 0 22px; }
+  .method-grid code {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+    background: var(--parchment-dim); padding: 1px 5px; border-radius: 3px;
+  }
+  .note-box {
+    background: var(--parchment-dim); border-left: 3px solid var(--canopy-600);
+    padding: 16px 20px; font-size: 13.5px; line-height: 1.6; color: #3d4a3e; margin-top: 6px;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer { background: var(--canopy-900); color: #9fb097; padding: 40px 0; font-size: 13px; }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  footer a { text-decoration: underline; text-decoration-color: #4c6353; }
+  footer .src { line-height: 1.9; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="label">Regulation (EU) 2023/1115: Deforestation-Free Verification</div>
+      <div class="purpose">
+        <strong>What this demonstrates</strong>
+        Automated screening for EUDR Article 9/10 supplier due diligence. Each plot is checked against satellite change-detection data for the 31 Dec 2020 cutoff (not a single snapshot), with no tolerance threshold, and degradation counted alongside deforestation for wood (Article 2).
+      </div>
+    </div>
+    <h1>The plot near Iguazú <em>failed</em> the EUDR cutoff check, while the province with the worst deforestation record passed.</h1>
+    <p class="sub">Three test plots, checked pixel-by-pixel against the EUDR's 31 December 2020 cutoff date, using live satellite data processed in Google Earth Engine. <strong>A 24,800-hectare box near Iguazú</strong>, in a province known for its forest cover, came back flagged. <strong>A 100,000-hectare box in Santiago del Estero</strong>, Argentina's most-deforested province in every annual report from 2021 to 2025, came back clean.</p>
+    <p class="caveat">This doesn't prove Santiago del Estero is deforestation-free: it proves regional reputation alone isn't enough for an Article 10 risk assessment. Full methodology below.</p>
+  </div>
+</section>
+
+<section class="map-section">
+  <div id="map"></div>
+  <div class="wrap">
+    <div class="legend-row">
+      <span><span class="sw moss"></span>Compliant: no deforestation or degradation detected after 2020</span>
+      <span><span class="sw ember"></span>Not compliant: deforestation or degradation detected</span>
+    </div>
+  </div>
+</section>
+
+<section class="results">
+  <div class="wrap">
+    <h2>The three test plots</h2>
+    <p>Each one evaluated against two independent JRC Tropical Moist Forest layers: deforestation year and degradation year. A single post-2020 pixel in either layer disqualifies the whole plot, with no tolerance threshold.</p>
+    <div class="cards" id="cardsContainer"></div>
+  </div>
+</section>
+
+<section class="method">
+  <div class="wrap">
+    <h2>How this was calculated</h2>
+    <div class="method-grid">
+      <div>
+        <h4>Why the 2020 snapshot isn't enough</h4>
+        <p><code>JRC/GFC2020/V3</code> is a single fixed snapshot at 31/12/2020: it confirms forest was there that day, but can't say whether it was cleared afterward. That requires a change layer: <code>JRC TMF v1_2025</code>, which records the exact year of deforestation and degradation, pixel by pixel, since 1990.</p>
+
+        <h4>Why degradation is checked, not just deforestation</h4>
+        <p>Article 2 requires that wood specifically be "harvested without inducing forest degradation" after the cutoff. Standing forest isn't enough on its own. Most demos out there only look at deforestation. This one checks both layers.</p>
+      </div>
+      <div>
+        <h4>No tolerance threshold</h4>
+        <p>Article 9 disqualifies automatically at any trace of deforestation or degradation: there's no tolerated percentage of affected area. The script mirrors that rule exactly: a single pixel is enough.</p>
+
+        <h4>What "no coverage" means</h4>
+        <p>TMF covers the tropical moist forest domain. Where it has no classification at all, the script doesn't silently default to "compliant": it returns an explicit third state flagging the need for another data source. None of the three test plots hit that case.</p>
+      </div>
+    </div>
+    <div class="note-box">
+      <strong>Methodological honesty note:</strong> "Compliant" here means "no change detected within this specific box," not a certification that the whole region is deforestation-free. A test box, however large, may not land on the exact site of an actual clearing event. This screening reduces risk, it doesn't eliminate it, which is exactly why Products 1 and 3 of this portfolio exist, to document the rest of the due diligence process.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="src">
+      Data: JRC Tropical Moist Forest v1_2025 (European Commission) · JRC Global Forest Cover 2020 V3<br>
+      Run on Google Earth Engine · Regulation (EU) 2023/1115, Arts. 2 and 9
+    </div>
+    <div>Part of the <a href="https://github.com/leonardoscarpa/validador-geometrias-eudr">EUDR compliance portfolio</a> by Leonardo Scarpa</div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+var results = [
+  {
+    id: 'MSNS-TEST-1',
+    place: 'Misiones, near Iguazú',
+    areaHa: 24880,
+    country: 'AR',
+    species: 'Pinus taeda',
+    deforestation: true,
+    degradation: true,
+    coverage: true,
+    verdict: 'NOT_COMPLIANT',
+    coords: [[-54.675,-26.325],[-54.525,-26.325],[-54.525,-26.475],[-54.675,-26.475],[-54.675,-26.325]]
+  },
+  {
+    id: 'CTES-TEST-1',
+    place: 'Corrientes',
+    areaHa: 24512,
+    country: 'AR',
+    species: 'Eucalyptus grandis',
+    deforestation: false,
+    degradation: false,
+    coverage: true,
+    verdict: 'COMPLIANT',
+    coords: [[-56.075,-27.985],[-55.925,-27.985],[-55.925,-28.135],[-56.075,-28.135],[-56.075,-27.985]]
+  },
+  {
+    id: 'SDE-COPO-TEST-1',
+    place: 'Santiago del Estero, Copo department',
+    areaHa: 100033,
+    country: 'AR',
+    species: 'N/A (reference control)',
+    deforestation: false,
+    degradation: false,
+    coverage: true,
+    verdict: 'COMPLIANT',
+    coords: [[-62.981,-25.656],[-62.681,-25.656],[-62.681,-25.956],[-62.981,-25.956],[-62.981,-25.656]]
+  }
+];
+
+// ---- map ----
+// Esri Canvas Dark Gray (keyless, free), used instead of CARTO, whose free
+// anonymous tile endpoints started requiring an API key in late Aug 2026.
+var map = L.map('map', { scrollWheelZoom: false });
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Esri, HERE, Garmin, FAO, NOAA, USGS', maxZoom: 16,
+}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 16,
+}).addTo(map);
+
+var bounds = [];
+results.forEach(function (r) {
+  var color = r.verdict === 'COMPLIANT' ? '#8db07f' : '#e2842a';
+  var latlngs = r.coords.map(function (c) { return [c[1], c[0]]; });
+  var poly = L.polygon(latlngs, {
+    color: color, weight: 2, fillColor: color, fillOpacity: r.verdict === 'COMPLIANT' ? 0.22 : 0.4
+  }).addTo(map);
+  var popupHtml = '<div style="font-family:IBM Plex Sans,sans-serif;min-width:180px;">' +
+    '<b>' + r.place + '</b><br>' +
+    '<span style="font-size:12px;color:#666;">' + r.id + '</span><br><br>' +
+    (r.verdict === 'COMPLIANT' ? '\uD83D\uDFE2 Compliant' : '\uD83D\uDFE0 Not compliant') + '<br>' +
+    'Area: ' + r.areaHa.toLocaleString('en-US') + ' ha' +
+    '</div>';
+  poly.bindPopup(popupHtml);
+  latlngs.forEach(function (ll) { bounds.push(ll); });
+});
+map.fitBounds(bounds, { padding: [40, 40] });
+
+// ---- cards ----
+var container = document.getElementById('cardsContainer');
+results.forEach(function (r) {
+  var flagged = r.verdict !== 'COMPLIANT';
+  var card = document.createElement('div');
+  card.className = 'card' + (flagged ? ' flagged' : '');
+  card.innerHTML =
+    '<span class="verdict-tag">' + (flagged ? 'Not compliant' : 'Compliant') + '</span>' +
+    '<h3>' + r.place + '</h3>' +
+    '<div class="loc mono">' + r.id + '</div>' +
+    '<dl>' +
+      '<div><dt>Area</dt><dd>' + r.areaHa.toLocaleString('en-US') + ' ha</dd></div>' +
+      '<div><dt>Declared species</dt><dd>' + r.species + '</dd></div>' +
+      '<div><dt>Deforestation after 2020</dt><dd>' + (r.deforestation ? 'Yes' : 'No') + '</dd></div>' +
+      '<div><dt>Degradation after 2020</dt><dd>' + (r.degradation ? 'Yes' : 'No') + '</dd></div>' +
+      '<div><dt>TMF coverage</dt><dd>' + (r.coverage ? 'Yes' : 'No') + '</dd></div>' +
+    '</dl>';
+  container.appendChild(card);
+});
+</script>
+</body>
+</html>
