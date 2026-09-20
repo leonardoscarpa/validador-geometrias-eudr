@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplier Risk Scorecard — EUDR</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root {
+    --green: #2f5233; --green-light: #e8f0e9;
+    --red: #c0392b; --red-light: #fdecea; --red-bg: #fff5f4;
+    --yellow: #b7950b; --yellow-light: #fdf6e3; --yellow-bg: #fffcf2;
+    --gray: #666; --border: #ddd;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system,"Segoe UI",Arial,sans-serif; margin:0; background:#f7f8f7; color:#222; }
+  header { background: var(--green); color:white; padding: 20px 28px; }
+  header h1 { margin:0 0 4px; font-size:22px; }
+  header p { margin:0; opacity:.9; font-size:14px; }
+  main { max-width: 1150px; margin:0 auto; padding: 24px 20px 60px; }
+
+  #dropzone { border:2px dashed #9ab09d; border-radius:10px; background:white; padding:36px 20px;
+    text-align:center; cursor:pointer; transition:background .15s; }
+  #dropzone.hover { background: var(--green-light); border-color: var(--green); }
+  #dropzone .big { font-size:17px; font-weight:600; }
+  #dropzone p { margin:6px 0; color: var(--gray); }
+  #fileInput { display:none; }
+  #fileName { margin-top:10px; font-size:13px; color:var(--gray); }
+  #templateLink { font-size:13px; color:var(--gray); margin-top:10px; }
+  #templateLink a { color: var(--green); }
+
+  #errorBox { display:none; background:var(--red-light); color:var(--red); border-radius:8px;
+    padding:12px 16px; margin-top:16px; font-size:13.5px; }
+  #status { font-size:13.5px; color:var(--gray); margin-top:10px; }
+
+  #results { display:none; margin-top: 28px; }
+
+  .cards { display:grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:22px; }
+  .card { background:white; border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
+  .card .n { font-size:26px; font-weight:700; }
+  .card .l { font-size:12.5px; color:var(--gray); margin-top:2px; }
+  .card.red .n { color: var(--red); } .card.yellow .n { color: var(--yellow); } .card.green .n { color:#2e8b45; }
+
+  h2.section { font-size:16px; margin: 26px 0 10px; }
+  #map { height: 380px; border-radius:8px; border:1px solid var(--border); margin-bottom:8px; background:#eef1ee; }
+  #mapNote { display:none; background:var(--yellow-light); color:#7a5c00; border-radius:8px; padding:10px 14px; font-size:13px; margin: 8px 0 22px; }
+  .legend { display:flex; gap:18px; font-size:13px; margin: 10px 0 22px 2px; color: var(--gray); }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
+  .dot.red{background:var(--red);} .dot.yellow{background:var(--yellow);} .dot.green{background:#2e8b45;}
+
+  .toolbar { display:flex; gap:10px; margin: 4px 0 18px; flex-wrap:wrap; }
+  button.btn { background:var(--green); color:white; border:none; border-radius:6px; padding:9px 16px; font-size:13.5px; cursor:pointer; }
+  button.btn.secondary { background:white; color:var(--green); border:1px solid var(--green); }
+  button.btn:hover { opacity:.9; }
+
+  .supplier-card { background:white; border-radius:10px; border:1px solid var(--border); margin-bottom:14px;
+    overflow:hidden; border-left: 6px solid var(--border); }
+  .supplier-card.tier-High { border-left-color: var(--red); background: linear-gradient(to right, var(--red-bg), white 60px); }
+  .supplier-card.tier-Medium { border-left-color: var(--yellow); background: linear-gradient(to right, var(--yellow-bg), white 60px); }
+  .supplier-card.tier-Low { border-left-color: #2e8b45; }
+
+  .supplier-head { display:flex; justify-content:space-between; align-items:flex-start; padding:16px 18px;
+    cursor:pointer; gap:12px; flex-wrap:wrap; }
+  .supplier-name { font-size:16px; font-weight:700; }
+  .supplier-meta { font-size:12.5px; color:var(--gray); margin-top:3px; }
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:12.5px; font-weight:700; white-space:nowrap; }
+  .badge.High { background: var(--red-light); color: var(--red); }
+  .badge.Medium { background: var(--yellow-light); color: var(--yellow); }
+  .badge.Low { background: #e5f4e8; color:#2e8b45; }
+  .badge .dot2 { width:8px; height:8px; border-radius:50%; background:currentColor; display:inline-block; }
+
+  .contact-row { display:flex; gap:16px; flex-wrap:wrap; padding: 0 18px 14px; font-size:13px; color:#444; }
+  .contact-row span { display:inline-flex; align-items:center; gap:5px; }
+  .contact-row a { color: var(--green); text-decoration:none; }
+  .contact-row a:hover { text-decoration:underline; }
+  .no-contact { color:#aaa; font-style:italic; }
+
+  .factors { display:none; padding: 0 18px 16px; border-top:1px solid #f0f0f0; }
+  .supplier-card.open .factors { display:block; }
+  .factor-row { display:flex; gap:10px; padding:8px 0; border-bottom:1px dashed #eee; font-size:13px; }
+  .factor-row:last-child { border-bottom:none; }
+  .factor-pts { font-weight:700; width:48px; flex-shrink:0; }
+  .factor-pts.pos { color: var(--red); } .factor-pts.neg { color:#2e8b45; }
+  .factor-art { font-size:11px; color:var(--gray); font-family: ui-monospace, Menlo, monospace; }
+  .toggle-icon { font-size:12px; color:var(--gray); margin-top:2px; }
+
+  #noneMsg { text-align:center; color:#888; padding:30px; background:white; border-radius:8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Supplier Risk Scorecard — EUDR</h1>
+  <p>Upload your supplier spreadsheet and get each one's risk level, ranked and documented against Article 10. Everything runs in your browser.</p>
+</header>
+
+<main>
+  <div id="dropzone">
+    <p class="big">📂 Drag your file here, or click to choose one</p>
+    <p>Excel (.xlsx) or CSV (.csv)</p>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+    <div id="fileName"></div>
+  </div>
+  <div id="templateLink">Don't have a file ready? <a href="#" id="downloadTemplate">Download sample template</a></div>
+  <div id="errorBox"></div>
+  <div id="status"></div>
+
+  <div id="results">
+    <div class="cards" id="cards"></div>
+
+    <h2 class="section">Supplier map</h2>
+    <div id="map"></div>
+    <div id="mapNote">ℹ️ Base map tiles failed to load. Suppliers are still shown, on a plain background.</div>
+    <div class="legend">
+      <span><span class="dot red"></span> High risk</span>
+      <span><span class="dot yellow"></span> Medium risk</span>
+      <span><span class="dot green"></span> Low risk</span>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn secondary" id="btnDownloadReport">⬇ Download report (text)</button>
+    </div>
+
+    <h2 class="section">Suppliers (highest to lowest risk)</h2>
+    <div id="supplierList"></div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<script>
+/* ============ ENGINE (tested with Node before embedding) ============ */
+// EUDR supplier risk scorecard — core JS engine (English version).
+// Same tested logic as the Spanish version — only user-facing strings differ.
+(function (root) {
+  "use strict";
+
+  const COUNTRY_LISTS = {"low": ["Afghanistan", "Albania", "Algeria", "Andorra", "Antigua and Barbuda", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belgium", "Bhutan", "Bosnia and Herzegovina", "Brunei Darussalam", "Bulgaria", "Burundi", "Cabo Verde", "Canada", "Central African Republic", "Chile", "China", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Egypt", "Estonia", "Eswatini", "Fiji", "Finland", "France", "Gabon", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guyana", "Hungary", "Iceland", "India", "Iran (Islamic Republic of)", "Iraq", "Ireland", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Lao People's Democratic Republic", "Latvia", "Lebanon", "Lesotho", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritius", "Micronesia (Federated States of)", "Monaco", "Mongolia", "Montenegro", "Morocco", "Nauru", "Nepal", "Netherlands (Kingdom of the)", "New Zealand", "North Macedonia", "Norway", "Oman", "Palau", "Palestine", "Papua New Guinea", "Philippines", "Poland", "Portugal", "Qatar", "Republic of Korea", "Republic of Moldova", "Romania", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Saudi Arabia", "Serbia", "Seychelles", "Singapore", "Slovakia", "Slovenia", "Solomon Island", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Suriname", "Sweden", "Switzerland", "Syrian Arab Republic", "S\u00e3o Tom\u00e9 and Pr\u00edncipe", "Tajikistan", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkmenistan", "Tuvalu", "T\u00fcrkiye", "Ukraine", "United Arab Emirates", "United Kingdom of Great Britain and Northern Ireland", "United States of America", "Uruguay", "Uzbekistan", "Vanuatu", "Vietnam", "Yemen"], "high": ["Belarus", "Democratic People's Republic of Korea", "Myanmar", "Russian Federation"]}; // {low:[...], high:[...]} — Annex to Regulation (EU) 2025/1093
+
+  const LOW_SET = new Set(COUNTRY_LISTS.low);
+  const HIGH_SET = new Set(COUNTRY_LISTS.high);
+
+  const ISO2_TO_NAME = {
+    AR: "Argentina", BR: "Brazil", PY: "Paraguay",
+    BO: "Bolivia (Plurinational State of)", CL: "Chile", UY: "Uruguay",
+  };
+
+  // Country-level official tier (Regulation 2025/1093): Low / Standard / High
+  const RISK_ORDER = { "Low": 0, "Standard": 1, "High": 2 };
+
+  function countryRiskTier(codeOrName) {
+    const name = ISO2_TO_NAME[codeOrName] || codeOrName;
+    if (HIGH_SET.has(name)) return "High";
+    if (LOW_SET.has(name)) return "Low";
+    return "Standard";
+  }
+
+  // ---------------------------------------------------------------------
+  // INGESTION ("long" convention: 1 row = 1 record; ParcelID groups rows,
+  // ProducerName groups parcels above that)
+  // ---------------------------------------------------------------------
+
+  const ALIASES = {
+    parcelid: "ParcelID", parcel_id: "ParcelID", id: "ParcelID",
+    producername: "ProducerName", producer: "ProducerName", productor: "ProducerName", proveedor: "ProducerName",
+    producercountry: "ProducerCountry", country: "ProducerCountry", pais: "ProducerCountry",
+    area: "Area", superficie: "Area", hectares: "Area", hectareas: "Area",
+    lat: "Latitude", latitude: "Latitude", latitud: "Latitude",
+    lon: "Longitude", lng: "Longitude", longitude: "Longitude", longitud: "Longitude",
+    contactname: "ContactName", contact: "ContactName", contacto: "ContactName", nombrecontacto: "ContactName",
+    contactemail: "ContactEmail", email: "ContactEmail", correo: "ContactEmail",
+    contactphone: "ContactPhone", phone: "ContactPhone", telefono: "ContactPhone",
+    indigenouspeoples: "IndigenousPeoplesPresence", pueblosindigenas: "IndigenousPeoplesPresence",
+    indigenouspeoplespresence: "IndigenousPeoplesPresence",
+    indigenousconsultation: "IndigenousConsultation", consultaindigena: "IndigenousConsultation",
+    supplychainintermediaries: "SupplyChainIntermediaries", intermediaries: "SupplyChainIntermediaries", intermediarios: "SupplyChainIntermediaries",
+    mixingriskdeclared: "MixingRiskDeclared", riesgomezcla: "MixingRiskDeclared",
+    priornoncomplianceincidents: "PriorNonComplianceIncidents",
+    incumplimientosprevios: "PriorNonComplianceIncidents",
+    voluntarycertification: "VoluntaryCertification", certification: "VoluntaryCertification", certificacion: "VoluntaryCertification",
+  };
+
+  const QUALITATIVE_COLS = ["IndigenousPeoplesPresence", "IndigenousConsultation",
+    "SupplyChainIntermediaries", "MixingRiskDeclared", "PriorNonComplianceIncidents",
+    "VoluntaryCertification", "ContactName", "ContactEmail", "ContactPhone"];
+
+  function normalizeRow(row) {
+    const out = {};
+    for (const k of Object.keys(row)) {
+      const canon = ALIASES[k.trim().toLowerCase()] || k;
+      out[canon] = row[k];
+    }
+    return out;
+  }
+
+  function yesno(v) {
+    if (v === undefined || v === null || String(v).trim() === "") return null;
+    const s = String(v).trim().toLowerCase();
+    if (["yes", "si", "sí", "y", "true", "1"].includes(s)) return true;
+    if (["no", "n", "false", "0"].includes(s)) return false;
+    return null;
+  }
+
+  function num(v, def) {
+    if (v === undefined || v === null || String(v).trim() === "") return def;
+    const n = parseFloat(String(v).replace(",", "."));
+    return isNaN(n) ? def : n;
+  }
+
+  function first(vals) {
+    const clean = vals.filter((v) => v !== undefined && v !== null && String(v).trim() !== "");
+    return clean.length ? clean[0] : null;
+  }
+
+  function ingestSupplierRows(rows) {
+    const warnings = [];
+    const norm = rows.map(normalizeRow);
+    if (!norm.length) return { suppliers: [], warnings };
+
+    const required = ["ParcelID", "ProducerName", "ProducerCountry"];
+    const cols = new Set(Object.keys(norm[0]));
+    const missing = required.filter((c) => !cols.has(c));
+    if (missing.length) {
+      warnings.push(`Missing required columns: ${missing.join(", ")}.`);
+      return { suppliers: [], warnings };
+    }
+
+    // level 1: collapse to one row per ParcelID
+    const byParcel = new Map();
+    for (const r of norm) {
+      const pid = String(r.ParcelID);
+      if (!byParcel.has(pid)) byParcel.set(pid, []);
+      byParcel.get(pid).push(r);
+    }
+    const parcelRecs = [];
+    for (const [pid, g] of byParcel) {
+      const rec = { ParcelID: pid };
+      for (const col of ["ProducerName", "ProducerCountry", "Area", "Latitude", "Longitude", ...QUALITATIVE_COLS]) {
+        rec[col] = first(g.map((r) => r[col]));
+      }
+      parcelRecs.push(rec);
+    }
+
+    // level 2: aggregate by ProducerName
+    const suppliers = new Map();
+    for (const rec of parcelRecs) {
+      const name = rec.ProducerName ? String(rec.ProducerName).trim() : "";
+      if (!name) {
+        warnings.push(`Parcel '${rec.ParcelID}' has no ProducerName — excluded from the scorecard.`);
+        continue;
+      }
+      if (!suppliers.has(name)) {
+        suppliers.set(name, {
+          producer_name: name, parcels: [], total_area_ha: 0, countries: new Set(),
+          lats: [], lons: [], contact_name: null, contact_email: null, contact_phone: null,
+          indigenous_present: false, indigenous_consulted: true, max_intermediaries: 0,
+          mixing_risk: false, total_incidents: 0, certifications: new Set(),
+        });
+      }
+      const s = suppliers.get(name);
+      s.parcels.push(rec.ParcelID);
+      s.total_area_ha += num(rec.Area, 0);
+      if (rec.ProducerCountry) s.countries.add(String(rec.ProducerCountry).trim().toUpperCase());
+      if (rec.Latitude != null && rec.Longitude != null) {
+        const la = num(rec.Latitude, null), lo = num(rec.Longitude, null);
+        if (la !== null && lo !== null) { s.lats.push(la); s.lons.push(lo); }
+      }
+      s.contact_name = s.contact_name || rec.ContactName;
+      s.contact_email = s.contact_email || rec.ContactEmail;
+      s.contact_phone = s.contact_phone || rec.ContactPhone;
+
+      const ind = yesno(rec.IndigenousPeoplesPresence);
+      if (ind) {
+        s.indigenous_present = true;
+        const cons = yesno(rec.IndigenousConsultation);
+        if (cons !== true) s.indigenous_consulted = false;
+      }
+      s.max_intermediaries = Math.max(s.max_intermediaries, num(rec.SupplyChainIntermediaries, 0));
+      if (yesno(rec.MixingRiskDeclared)) s.mixing_risk = true;
+      s.total_incidents += num(rec.PriorNonComplianceIncidents, 0);
+      const cert = rec.VoluntaryCertification;
+      if (cert && !["none", "ninguna", "no", ""].includes(String(cert).trim().toLowerCase())) {
+        s.certifications.add(String(cert).trim());
+      }
+    }
+
+    const result = [];
+    for (const s of suppliers.values()) {
+      if (s.countries.size > 1) {
+        warnings.push(`Supplier '${s.producer_name}' has parcels in more than one country ` +
+          `(${[...s.countries].sort().join(", ")}); the highest-risk one was used for scoring.`);
+      }
+      const tiers = [...s.countries].map(countryRiskTier);
+      s.worst_country_tier = tiers.length
+        ? tiers.reduce((a, b) => (RISK_ORDER[b] > RISK_ORDER[a] ? b : a))
+        : "Standard";
+      if (!s.indigenous_present) s.indigenous_consulted = null;
+      s.lat = s.lats.length ? s.lats.reduce((a, b) => a + b, 0) / s.lats.length : null;
+      s.lon = s.lons.length ? s.lons.reduce((a, b) => a + b, 0) / s.lons.length : null;
+      s.total_area_ha = Math.round(s.total_area_ha * 100) / 100;
+      result.push(s);
+    }
+
+    return { suppliers: result, warnings };
+  }
+
+  // ---------------------------------------------------------------------
+  // SCORING
+  // ---------------------------------------------------------------------
+
+  const COUNTRY_BASE_POINTS = { "Low": 0, "Standard": 1, "High": 4 };
+
+  function scoreSupplier(s) {
+    const factors = [];
+
+    const tier = s.worst_country_tier;
+    factors.push({
+      points: COUNTRY_BASE_POINTS[tier], article: "Art. 10(a)",
+      label: `Country classification: ${tier}`,
+      detail: `Declared country(ies): ${[...s.countries].sort().join(", ") || "(no data)"} ` +
+              `— Commission Implementing Regulation (EU) 2025/1093.`,
+    });
+
+    if (s.indigenous_present) {
+      if (s.indigenous_consulted) {
+        factors.push({ points: 0.5, article: "Art. 10(c)(d)",
+          label: "Indigenous peoples present, with documented consultation",
+          detail: "At least one parcel reports the presence of indigenous peoples; consultation is documented." });
+      } else {
+        factors.push({ points: 2, article: "Art. 10(c)(d)(e)",
+          label: "Indigenous peoples present, with NO documented consultation",
+          detail: "At least one parcel reports the presence of indigenous peoples with no documented consultation — unmitigated risk." });
+      }
+    }
+
+    const inter = s.max_intermediaries;
+    if (inter >= 3) {
+      factors.push({ points: 2, article: "Art. 10(i)",
+        label: `Long supply chain (${inter} intermediaries)`,
+        detail: "3 or more intermediaries declared between the producer and the operator." });
+    } else if (inter >= 1) {
+      factors.push({ points: 1, article: "Art. 10(i)",
+        label: `Supply chain with intermediaries (${inter})`,
+        detail: "1-2 intermediaries declared." });
+    }
+
+    if (s.mixing_risk) {
+      factors.push({ points: 2, article: "Art. 10(j) / Art. 13",
+        label: "Mixing or circumvention risk declared",
+        detail: "Risk of mixing with product of unknown origin or from higher-risk countries was declared." });
+    }
+
+    const inc = s.total_incidents;
+    if (inc >= 3) {
+      factors.push({ points: 3, article: "Art. 10(l)",
+        label: `Non-compliance history (${inc} prior incidents)`,
+        detail: "3 or more prior non-compliance incidents declared." });
+    } else if (inc >= 1) {
+      factors.push({ points: 1, article: "Art. 10(l)",
+        label: `Non-compliance history (${inc} prior incident(s))`,
+        detail: "1-2 prior non-compliance incidents declared." });
+    }
+
+    if (s.certifications.size) {
+      factors.push({ points: -1.5, article: "Art. 10(n)",
+        label: `Voluntary certification: ${[...s.certifications].sort().join(", ")}`,
+        detail: "A third-party verification scheme or voluntary certification was declared — this mitigates risk but does not remove the rest of the due diligence requirement." });
+    }
+
+    const total = Math.max(factors.reduce((a, f) => a + f.points, 0), 0);
+    let level;
+    if (total < 2) level = "Low";
+    else if (total < 5) level = "Medium";
+    else level = "High";
+
+    return {
+      producer_name: s.producer_name, parcels: s.parcels, total_area_ha: s.total_area_ha,
+      countries: [...s.countries].sort(), lat: s.lat, lon: s.lon,
+      contact_name: s.contact_name, contact_email: s.contact_email, contact_phone: s.contact_phone,
+      factors, total_points: Math.round(total * 100) / 100, tier: level,
+    };
+  }
+
+  function scoreAll(suppliers) {
+    return suppliers.map(scoreSupplier);
+  }
+
+  const EudrScorecard = { countryRiskTier, ingestSupplierRows, scoreSupplier, scoreAll };
+
+  if (typeof module !== "undefined" && module.exports) module.exports = EudrScorecard;
+  else (typeof window !== "undefined" ? window : globalThis).EudrScorecard = EudrScorecard;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<script>
+(function () {
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileNameEl = document.getElementById('fileName');
+  const statusEl = document.getElementById('status');
+  const errorBox = document.getElementById('errorBox');
+  const results = document.getElementById('results');
+  const cardsEl = document.getElementById('cards');
+  const supplierListEl = document.getElementById('supplierList');
+
+  let map, layerGroup;
+  let lastReportText = null;
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('hover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('hover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault(); dropzone.classList.remove('hover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+  function showError(msg) { errorBox.style.display = 'block'; errorBox.textContent = '⚠ ' + msg; }
+  function clearError() { errorBox.style.display = 'none'; errorBox.textContent = ''; }
+
+  function handleFile(file) {
+    clearError();
+    fileNameEl.textContent = file.name + '  (' + (file.size / 1024).toFixed(1) + ' KB)';
+    statusEl.textContent = 'Processing…';
+    results.style.display = 'none';
+
+    const ext = file.name.toLowerCase().split('.').pop();
+    if (ext === 'csv') {
+      Papa.parse(file, {
+        header: true, skipEmptyLines: true,
+        complete: (res) => run(res.data),
+        error: (err) => { showError('Could not read the CSV file: ' + err.message); statusEl.textContent=''; },
+      });
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: null });
+          run(rows);
+        } catch (err) { showError('Could not read the Excel file: ' + err.message); statusEl.textContent=''; }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      showError('Unsupported format. Please use .xlsx or .csv.');
+      statusEl.textContent = '';
+    }
+  }
+
+  function run(rows) {
+    const { suppliers, warnings } = EudrScorecard.ingestSupplierRows(rows);
+    if (!suppliers.length && warnings.length) { showError(warnings.join(' ')); statusEl.textContent=''; return; }
+    const scores = EudrScorecard.scoreAll(suppliers).sort((a, b) => b.total_points - a.total_points);
+    render(scores, warnings);
+    statusEl.textContent = '';
+  }
+
+  function render(scores, warnings) {
+    results.style.display = 'block';
+    const nHigh = scores.filter(s => s.tier === 'High').length;
+    const nMedium = scores.filter(s => s.tier === 'Medium').length;
+    const nLow = scores.filter(s => s.tier === 'Low').length;
+
+    cardsEl.innerHTML = `
+      <div class="card"><div class="n">${scores.length}</div><div class="l">Suppliers evaluated</div></div>
+      <div class="card red"><div class="n">${nHigh}</div><div class="l">🔴 High risk</div></div>
+      <div class="card yellow"><div class="n">${nMedium}</div><div class="l">🟡 Medium risk</div></div>
+      <div class="card green"><div class="n">${nLow}</div><div class="l">🟢 Low risk</div></div>
+    `;
+
+    renderMap(scores);
+    renderList(scores, warnings);
+    prepareDownload(scores, warnings);
+  }
+
+  const TIER_COLOR = { High: '#c0392b', Medium: '#b7950b', Low: '#2e8b45' };
+
+  function renderMap(scores) {
+    if (!map) {
+      map = L.map('map');
+      const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 19, subdomains: 'abcd',
+      });
+      tiles.addTo(map);
+      let failed = false;
+      tiles.on('tileerror', () => { if (failed) return; failed = true; map.removeLayer(tiles); document.getElementById('mapNote').style.display = 'block'; });
+      layerGroup = L.layerGroup().addTo(map);
+    }
+    layerGroup.clearLayers();
+    const bounds = [];
+    scores.forEach((s) => {
+      if (s.lat == null || s.lon == null || !isFinite(s.lat) || !isFinite(s.lon)) return;
+      const color = TIER_COLOR[s.tier];
+      const popup = `<b>${s.producer_name}</b><br>${s.tier} risk (${s.total_points} pts)<br>` +
+        `${s.countries.join(', ')}<br>` +
+        `${s.contact_name ? '👤 ' + s.contact_name + '<br>' : ''}` +
+        `${s.contact_email ? '✉️ ' + s.contact_email + '<br>' : ''}` +
+        `${s.contact_phone ? '📞 ' + s.contact_phone : ''}`;
+      const m = L.circleMarker([s.lat, s.lon], { radius: 9, color, fillColor: color, fillOpacity: 0.85, weight: 2 }).bindPopup(popup);
+      layerGroup.addLayer(m);
+      bounds.push([s.lat, s.lon]);
+    });
+    if (bounds.length) map.fitBounds(bounds, { padding: [30, 30] });
+    else map.setView([-27, -56], 5);
+    setTimeout(() => map.invalidateSize(), 200);
+  }
+
+  function esc(s) { return (s ?? '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function renderList(scores, warnings) {
+    if (!scores.length) {
+      supplierListEl.innerHTML = '<div id="noneMsg">No supplier could be evaluated — check that the file has the columns ParcelID, ProducerName, and ProducerCountry.</div>';
+      return;
+    }
+    supplierListEl.innerHTML = scores.map((s, i) => {
+      const contact = (s.contact_name || s.contact_email || s.contact_phone)
+        ? `<div class="contact-row">
+            ${s.contact_name ? `<span>👤 ${esc(s.contact_name)}</span>` : ''}
+            ${s.contact_email ? `<span>✉️ <a href="mailto:${esc(s.contact_email)}">${esc(s.contact_email)}</a></span>` : ''}
+            ${s.contact_phone ? `<span>📞 <a href="tel:${esc(s.contact_phone)}">${esc(s.contact_phone)}</a></span>` : ''}
+          </div>`
+        : `<div class="contact-row"><span class="no-contact">No contact details on file</span></div>`;
+
+      const factorsHtml = s.factors.map(f => `
+        <div class="factor-row">
+          <div class="factor-pts ${f.points >= 0 ? 'pos' : 'neg'}">${f.points >= 0 ? '+' : ''}${f.points}</div>
+          <div>
+            <div><b>${esc(f.label)}</b> <span class="factor-art">[${esc(f.article)}]</span></div>
+            <div style="color:#666;font-size:12.5px;">${esc(f.detail)}</div>
+          </div>
+        </div>
+      `).join('');
+
+      return `
+        <div class="supplier-card tier-${s.tier}" id="card-${i}">
+          <div class="supplier-head" onclick="document.getElementById('card-${i}').classList.toggle('open')">
+            <div>
+              <div class="supplier-name">${esc(s.producer_name)}</div>
+              <div class="supplier-meta">${s.parcels.length} parcel(s) · ${s.total_area_ha} ha · ${esc(s.countries.join(', ') || 'no country')}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="badge ${s.tier}"><span class="dot2"></span>${s.tier} · ${s.total_points} pts</span>
+              <span class="toggle-icon">▾ details</span>
+            </div>
+          </div>
+          ${contact}
+          <div class="factors">${factorsHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    if (warnings.length) {
+      supplierListEl.innerHTML += `<div style="margin-top:16px; font-size:12.5px; color:#7a5c00; background:var(--yellow-light); border-radius:8px; padding:12px 16px;">
+        ⚠️ ${warnings.map(esc).join('<br>')}
+      </div>`;
+    }
+  }
+
+  function prepareDownload(scores, warnings) {
+    const lines = [];
+    lines.push('SUPPLIER RISK SCORECARD — EUDR (Art. 10)');
+    lines.push('Generated: ' + new Date().toLocaleString());
+    lines.push('');
+    scores.forEach(s => {
+      lines.push(`${s.tier.toUpperCase()} (${s.total_points} pts) — ${s.producer_name}`);
+      lines.push(`  Parcels: ${s.parcels.join(', ')} | Area: ${s.total_area_ha} ha | Country(ies): ${s.countries.join(', ')}`);
+      if (s.contact_name || s.contact_email || s.contact_phone) {
+        lines.push(`  Contact: ${[s.contact_name, s.contact_email, s.contact_phone].filter(Boolean).join(' | ')}`);
+      }
+      s.factors.forEach(f => lines.push(`  [${f.points >= 0 ? '+' : ''}${f.points}] [${f.article}] ${f.label} — ${f.detail}`));
+      lines.push('');
+    });
+    if (warnings.length) { lines.push('WARNINGS:'); warnings.forEach(w => lines.push('  - ' + w)); }
+    lastReportText = lines.join('\n');
+  }
+
+  document.getElementById('btnDownloadReport').addEventListener('click', () => {
+    if (!lastReportText) return;
+    const blob = new Blob([lastReportText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'scorecard.txt'; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('downloadTemplate').addEventListener('click', (e) => {
+    e.preventDefault();
+    const headers = ['ParcelID','ProducerName','ProducerCountry','Latitude','Longitude','Area',
+      'ContactName','ContactEmail','ContactPhone','IndigenousPeoplesPresence','IndigenousConsultation',
+      'SupplyChainIntermediaries','MixingRiskDeclared','PriorNonComplianceIncidents','VoluntaryCertification'];
+    const example = ['P-001','Forestal Don Aparicio','AR','-28.05','-56.00','4.2',
+      'John Smith','john@example.com','+54 9 11 1234-5678','No','','0','No','0','FSC'];
+    const csv = headers.join(',') + '\n' + example.join(',') + '\n';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'supplier_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  });
+})();
+</script>
+</body>
+</html>
