@@ -1,6 +1,6 @@
 # Validador de geometrías de proveedores — EUDR
 
-Producto 1 del portfolio EUDR de Leo Nahuel Romero (perfil GIS/forestal + gestión de
+Producto 1 del portfolio EUDR de Leonardo Scarpa (perfil GIS/forestal + gestión de
 proveedores). Valida y convierte archivos de geolocalización de parcelas de
 proveedores (Excel, CSV o GeoJSON) al formato exacto que exige el Information
 System de la EUDR, y genera un informe de calidad legible por un equipo de
