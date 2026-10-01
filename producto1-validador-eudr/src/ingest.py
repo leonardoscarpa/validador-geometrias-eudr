@@ -76,6 +76,38 @@ def load_any(path):
 # GeoJSON
 # ---------------------------------------------------------------------------
 
+def _check_polygon_coordinates(rings, pid, label=""):
+    """Aplica los chequeos de huecos / vértices mínimos / cierre / rango y
+    precisión de coordenadas a UN polígono ya extraído de las coordenadas
+    crudas (coordinates[0] de un Polygon, o cada sub-polígono dentro de un
+    MultiPolygon). `label` es un sufijo como " (parte 2/3)" para que los
+    hallazgos de un MultiPolygon digan a qué parte corresponden."""
+    findings = []
+    if len(rings) > 1:
+        findings.append(Finding(
+            ERROR, "POLY_HAS_HOLES",
+            f"El polígono{label} tiene {len(rings) - 1} anillo(s) interior(es) "
+            "(hueco tipo 'dona'), lo cual está prohibido.",
+            REF_GEOJSON_SPEC, parcel_id=pid))
+    if rings:
+        ext_ring = rings[0]
+        if len(ext_ring) < 4:
+            findings.append(Finding(
+                ERROR, "POLY_TOO_FEW_VERTICES",
+                f"El polígono{label} tiene {len(ext_ring)} pares de coordenadas; "
+                "se requieren al menos 4 (incluyendo el cierre).",
+                REF_GEOJSON_SPEC, parcel_id=pid))
+        elif ext_ring[0] != ext_ring[-1]:
+            findings.append(Finding(
+                ERROR, "POLY_NOT_CLOSED",
+                f"El polígono{label} no está cerrado: el primer punto debe ser "
+                "idéntico al último.",
+                REF_GEOJSON_SPEC, parcel_id=pid))
+        for vi, (lon, lat) in enumerate(ext_ring):
+            findings.extend(check_coordinate_value(lon, lat, pid, f"vértice {vi}{label}"))
+    return findings
+
+
 def load_geojson(path):
     findings = []
     failed_ids = []
@@ -132,35 +164,26 @@ def load_geojson(path):
         # chequeos que solo se pueden hacer sobre las coordenadas CRUDAS,
         # antes de que shapely normalice el anillo (shapely cierra polígonos
         # automáticamente al parsear, así que después de shape() ya no se
-        # puede saber si el archivo original venía cerrado o no)
+        # puede saber si el archivo original venía cerrado o no).
+        # Se aplican por igual a los tipos simples (Polygon/Point) y a sus
+        # versiones multipart (MultiPolygon/MultiPoint), parte por parte.
         if gtype == "Polygon":
-            rings = geom_dict.get("coordinates", [])
-            if len(rings) > 1:
-                findings.append(Finding(
-                    ERROR, "POLY_HAS_HOLES",
-                    f"El polígono tiene {len(rings) - 1} anillo(s) interior(es) "
-                    "(hueco tipo 'dona'), lo cual está prohibido.",
-                    REF_GEOJSON_SPEC, parcel_id=pid))
-            if rings:
-                ext_ring = rings[0]
-                if len(ext_ring) < 4:
-                    findings.append(Finding(
-                        ERROR, "POLY_TOO_FEW_VERTICES",
-                        f"El polígono tiene {len(ext_ring)} pares de coordenadas; "
-                        "se requieren al menos 4 (incluyendo el cierre).",
-                        REF_GEOJSON_SPEC, parcel_id=pid))
-                elif ext_ring[0] != ext_ring[-1]:
-                    findings.append(Finding(
-                        ERROR, "POLY_NOT_CLOSED",
-                        "El polígono no está cerrado: el primer punto debe ser "
-                        "idéntico al último.",
-                        REF_GEOJSON_SPEC, parcel_id=pid))
-                for vi, (lon, lat) in enumerate(ext_ring):
-                    findings.extend(check_coordinate_value(lon, lat, pid, f"vértice {vi}"))
+            findings.extend(_check_polygon_coordinates(geom_dict.get("coordinates", []), pid))
+        elif gtype == "MultiPolygon":
+            parts = geom_dict.get("coordinates", [])
+            for pi, part_rings in enumerate(parts):
+                label = f" (parte {pi + 1}/{len(parts)})"
+                findings.extend(_check_polygon_coordinates(part_rings, pid, label))
         elif gtype == "Point":
             coords = geom_dict.get("coordinates", [None, None])
             if len(coords) >= 2:
                 findings.extend(check_coordinate_value(coords[0], coords[1], pid))
+        elif gtype == "MultiPoint":
+            coords_list = geom_dict.get("coordinates", [])
+            for vi, coords in enumerate(coords_list):
+                if len(coords) >= 2:
+                    findings.extend(check_coordinate_value(
+                        coords[0], coords[1], pid, f"punto {vi + 1}/{len(coords_list)}"))
 
         try:
             geom = shape(geom_dict)
