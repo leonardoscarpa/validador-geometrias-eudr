@@ -65,12 +65,12 @@ Three test plots, real Earth Engine output, not invented figures:
 
 | Plot | Location | Area | Deforestation post-2020 | Degradation post-2020 | Verdict |
 |---|---|---|---|---|---|
-| `MSNS-TEST-1` | Misiones, near Iguazú | 24,880 ha | Yes | Yes | **NOT_COMPLIANT** |
+| `MSNS-TEST-1` | Misiones, near Eldorado | 24,880 ha | Yes | Yes | **NOT_COMPLIANT** |
 | `CTES-TEST-1` | Corrientes | 24,512 ha | No | No | COMPLIANT |
 | `SDE-COPO-TEST-1` | Santiago del Estero, Copo dept. | 100,033 ha | No | No | COMPLIANT |
 
 The interesting result isn't the one that looks obvious. Misiones is
-generally associated with well-preserved forest near Iguazú, yet a 24,880 ha
+generally associated with well-preserved forest (it is home to Iguazú), yet a 24,880 ha
 test box there returned `NOT_COMPLIANT` on both layers. Santiago del Estero,
 Argentina's most-deforested province in every annual Greenpeace report from
 2021 to 2025, returned clean on a box four times larger. A first Salta test
