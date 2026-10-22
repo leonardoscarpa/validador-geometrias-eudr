@@ -1,8 +1,8 @@
 """
-Genera el informe de calidad en tres formatos: Markdown, PDF y Excel.
-El público objetivo es un equipo de compliance que trabaja en SAP/Excel, no
-especialistas en teledetección — por eso el lenguaje evita jerga geoespacial
-y cada hallazgo cita su fundamento normativo/técnico.
+Generates the quality report in three formats: Markdown, PDF and Excel.
+The target audience is a compliance team working in SAP/Excel, not remote
+sensing specialists, so the language avoids geospatial jargon and every
+finding cites its regulatory/technical basis.
 """
 
 import datetime
@@ -10,9 +10,14 @@ import datetime
 from .models import ERROR, WARNING, INFO
 
 SEVERITY_LABEL = {
-    ERROR: "Error bloqueante",
-    WARNING: "Advertencia",
-    INFO: "Nota de conversión",
+    ERROR: "Blocking error",
+    WARNING: "Warning",
+    INFO: "Conversion note",
+}
+SEVERITY_LABEL_PLURAL = {
+    ERROR: "Blocking errors",
+    WARNING: "Warnings",
+    INFO: "Conversion notes",
 }
 SEVERITY_ICON = {ERROR: "🔴", WARNING: "🟡", INFO: "ℹ️"}
 
@@ -32,11 +37,11 @@ def build_summary(gdf, findings, failed_ids=None):
         elif f.severity == INFO:
             n_info += 1
 
-    # Se cuenta por REGISTRO: filas del GeoDataFrame (parcelas que llegaron a
-    # tener geometría) MÁS los ParcelID que fallaron tan temprano en la
-    # ingesta que nunca llegaron a formar una geometría (lat/lon faltante,
-    # geometría prohibida, etc.) — esos también son "parcelas evaluadas con
-    # error", no deben desaparecer del conteo.
+    # Counted per RECORD: GeoDataFrame rows (parcels that got a geometry)
+    # PLUS the ParcelIDs that failed so early in ingestion that they never
+    # formed a geometry (missing lat/lon, prohibited geometry, etc.). Those
+    # are also "parcels evaluated with error" and must not vanish from the
+    # count.
     n_gdf = len(gdf) if not gdf.empty else 0
     total_parcels = n_gdf + len(failed_ids)
     bad_rows_in_gdf = int(gdf["ParcelID"].astype(str).isin(bad_ids).sum()) if n_gdf else 0
@@ -61,35 +66,35 @@ def _sorted_findings(findings):
 # Markdown
 # ---------------------------------------------------------------------------
 
-def generate_markdown(gdf, findings, input_filename, commodity="Madera (Cono Sur)", failed_ids=None):
+def generate_markdown(gdf, findings, input_filename, commodity="Wood (Southern Cone)", failed_ids=None):
     s = build_summary(gdf, findings, failed_ids)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     lines = []
-    lines.append("# Informe de calidad — Validador de geometrías de proveedores (EUDR)")
+    lines.append("# Quality report: EUDR supplier geometry validator")
     lines.append("")
-    lines.append(f"**Archivo de entrada:** `{input_filename}`  ")
-    lines.append(f"**Fecha de generación:** {now}  ")
+    lines.append(f"**Input file:** `{input_filename}`  ")
+    lines.append(f"**Generated:** {now}  ")
     lines.append(f"**Commodity:** {commodity}  ")
-    lines.append("**Formato de referencia:** EUDR GeoJSON File Description v1.5 "
-                  "(Reglamento de Ejecución (UE) 2024/3084)")
+    lines.append("**Reference format:** EUDR GeoJSON File Description v1.5 "
+                  "(Implementing Regulation (EU) 2024/3084)")
     lines.append("")
-    lines.append("## Resumen ejecutivo")
+    lines.append("## Executive summary")
     lines.append("")
-    lines.append("| Métrica | Valor |")
+    lines.append("| Metric | Value |")
     lines.append("|---|---|")
-    lines.append(f"| Parcelas evaluadas | {s['total_parcels']} |")
-    lines.append(f"| Parcelas aptas para presentar tal cual | {s['ok_parcels']} |")
-    lines.append(f"| Parcelas con error bloqueante | {s['bad_parcels']} |")
-    lines.append(f"| Errores bloqueantes (total) | {s['n_error']} |")
-    lines.append(f"| Advertencias (no bloqueantes) | {s['n_warning']} |")
-    lines.append(f"| Notas de conversión | {s['n_info']} |")
+    lines.append(f"| Parcels evaluated | {s['total_parcels']} |")
+    lines.append(f"| Parcels ready to submit as-is | {s['ok_parcels']} |")
+    lines.append(f"| Parcels with blocking error | {s['bad_parcels']} |")
+    lines.append(f"| Blocking errors (total) | {s['n_error']} |")
+    lines.append(f"| Warnings (non-blocking) | {s['n_warning']} |")
+    lines.append(f"| Conversion notes | {s['n_info']} |")
     lines.append("")
     lines.append(
-        "**Qué significa \"apto\":** la parcela no tiene ningún hallazgo de "
-        "severidad *Error bloqueante*. El GeoJSON de salida (`output.geojson`) "
-        "incluye únicamente las parcelas aptas. Las parcelas con error bloqueante "
-        "quedan fuera del archivo de salida y deben corregirse en origen antes de "
-        "volver a intentar la presentación."
+        "**What \"ready\" means:** the parcel has no finding of "
+        "severity *Blocking error*. The output GeoJSON (`output.geojson`) "
+        "contains only ready parcels. Parcels with a blocking error "
+        "are left out of the output file and must be corrected at the source before "
+        "attempting submission again."
     )
     lines.append("")
 
@@ -98,17 +103,17 @@ def generate_markdown(gdf, findings, input_filename, commodity="Madera (Cono Sur
         subset = [f for f in sorted_findings if f.severity == sev]
         if not subset:
             continue
-        lines.append(f"## {SEVERITY_ICON[sev]} {SEVERITY_LABEL[sev]}s ({len(subset)})")
+        lines.append(f"## {SEVERITY_ICON[sev]} {SEVERITY_LABEL_PLURAL[sev]} ({len(subset)})")
         lines.append("")
         for f in subset:
-            pid_txt = f" — Parcela `{f.parcel_id}`" if f.parcel_id else " — Archivo completo"
+            pid_txt = f" Parcel `{f.parcel_id}`" if f.parcel_id else " Whole file"
             lines.append(f"- **[{f.code}]**{pid_txt}: {f.message}")
-            lines.append(f"  *Fundamento: {f.reference}*")
+            lines.append(f"  *Basis: {f.reference}*")
         lines.append("")
 
     if not findings:
-        lines.append("No se detectaron hallazgos: todas las parcelas cumplen los "
-                      "chequeos aplicados. ✅")
+        lines.append("No findings detected: all parcels pass the applied "
+                      "checks. ✅")
         lines.append("")
 
     return "\n".join(lines)
@@ -118,7 +123,7 @@ def generate_markdown(gdf, findings, input_filename, commodity="Madera (Cono Sur
 # PDF (reportlab)
 # ---------------------------------------------------------------------------
 
-def generate_pdf(gdf, findings, input_filename, path, commodity="Madera (Cono Sur)", failed_ids=None):
+def generate_pdf(gdf, findings, input_filename, path, commodity="Wood (Southern Cone)", failed_ids=None):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
@@ -139,14 +144,14 @@ def generate_pdf(gdf, findings, input_filename, path, commodity="Madera (Cono Su
                              topMargin=16 * mm, bottomMargin=16 * mm)
     story = []
 
-    story.append(Paragraph("Informe de calidad — Validador de geometrías de proveedores (EUDR)",
+    story.append(Paragraph("Quality report: EUDR supplier geometry validator",
                             styles["Title"]))
     story.append(Spacer(1, 4 * mm))
     meta_tbl = Table([
-        ["Archivo de entrada", input_filename],
-        ["Fecha de generación", now],
+        ["Input file", input_filename],
+        ["Generated", now],
         ["Commodity", commodity],
-        ["Formato de referencia", "EUDR GeoJSON File Description v1.5 (Reglamento 2024/3084)"],
+        ["Reference format", "EUDR GeoJSON File Description v1.5 (Regulation 2024/3084)"],
     ], colWidths=[45 * mm, 120 * mm])
     meta_tbl.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -157,15 +162,15 @@ def generate_pdf(gdf, findings, input_filename, path, commodity="Madera (Cono Su
     story.append(meta_tbl)
     story.append(Spacer(1, 6 * mm))
 
-    story.append(Paragraph("Resumen ejecutivo", styles["Heading2"]))
+    story.append(Paragraph("Executive summary", styles["Heading2"]))
     summary_data = [
-        ["Métrica", "Valor"],
-        ["Parcelas evaluadas", str(s["total_parcels"])],
-        ["Parcelas aptas para presentar tal cual", str(s["ok_parcels"])],
-        ["Parcelas con error bloqueante", str(s["bad_parcels"])],
-        ["Errores bloqueantes (total)", str(s["n_error"])],
-        ["Advertencias (no bloqueantes)", str(s["n_warning"])],
-        ["Notas de conversión", str(s["n_info"])],
+        ["Metric", "Value"],
+        ["Parcels evaluated", str(s["total_parcels"])],
+        ["Parcels ready to submit as-is", str(s["ok_parcels"])],
+        ["Parcels with blocking error", str(s["bad_parcels"])],
+        ["Blocking errors (total)", str(s["n_error"])],
+        ["Warnings (non-blocking)", str(s["n_warning"])],
+        ["Conversion notes", str(s["n_info"])],
     ]
     sum_tbl = Table(summary_data, colWidths=[100 * mm, 40 * mm])
     sum_tbl.setStyle(TableStyle([
@@ -179,9 +184,9 @@ def generate_pdf(gdf, findings, input_filename, path, commodity="Madera (Cono Su
     story.append(sum_tbl)
     story.append(Spacer(1, 4 * mm))
     story.append(Paragraph(
-        "<b>Qué significa \"apto\":</b> la parcela no tiene ningún hallazgo de "
-        "severidad Error bloqueante. El GeoJSON de salida incluye únicamente las "
-        "parcelas aptas.", styles["Small"]))
+        "<b>What \"ready\" means:</b> the parcel has no finding of "
+        "severity Blocking error. The output GeoJSON contains only the "
+        "ready parcels.", styles["Small"]))
     story.append(PageBreak())
 
     sorted_findings = _sorted_findings(findings)
@@ -194,13 +199,13 @@ def generate_pdf(gdf, findings, input_filename, path, commodity="Madera (Cono Su
         subset = [f for f in sorted_findings if f.severity == sev]
         if not subset:
             continue
-        story.append(Paragraph(f"{SEVERITY_LABEL[sev]}s ({len(subset)})",
+        story.append(Paragraph(f"{SEVERITY_LABEL_PLURAL[sev]} ({len(subset)})",
                                 ParagraphStyle(name=f"H_{sev}", parent=styles["Heading2"],
                                                textColor=sev_colors[sev])))
         story.append(Spacer(1, 2 * mm))
-        rows = [["Parcela", "Código", "Detalle"]]
+        rows = [["Parcel", "Code", "Detail"]]
         for f in subset:
-            pid_txt = f.parcel_id if f.parcel_id else "Archivo completo"
+            pid_txt = f.parcel_id if f.parcel_id else "Whole file"
             pid_p = Paragraph(str(pid_txt), styles["FindingMsg"])
             code_p = Paragraph(f.code, styles["FindingMsg"])
             detail = Paragraph(f"{f.message}<br/><font size=7 color='grey'>{f.reference}</font>",
@@ -220,17 +225,17 @@ def generate_pdf(gdf, findings, input_filename, path, commodity="Madera (Cono Su
         story.append(Spacer(1, 6 * mm))
 
     if not findings:
-        story.append(Paragraph("No se detectaron hallazgos: todas las parcelas "
-                                "cumplen los chequeos aplicados.", styles["Normal"]))
+        story.append(Paragraph("No findings detected: all parcels "
+                                "pass the applied checks.", styles["Normal"]))
 
     doc.build(story)
 
 
 # ---------------------------------------------------------------------------
-# Excel (openpyxl, con fórmulas para que el resumen se recalcule)
+# Excel (openpyxl, with formulas so the summary recalculates)
 # ---------------------------------------------------------------------------
 
-def generate_excel(gdf, findings, areas_ha, input_filename, path, commodity="Madera (Cono Sur)",
+def generate_excel(gdf, findings, areas_ha, input_filename, path, commodity="Wood (Southern Cone)",
                     failed_ids=None):
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
@@ -239,18 +244,18 @@ def generate_excel(gdf, findings, areas_ha, input_filename, path, commodity="Mad
     failed_ids = list(failed_ids or [])
     wb = Workbook()
 
-    # ---- Hoja Hallazgos (datos base) ----
+    # ---- Findings sheet (base data) ----
     ws_f = wb.active
-    ws_f.title = "Hallazgos"
-    headers = ["Severidad", "ParcelID", "Codigo", "Mensaje", "Referencia normativa"]
+    ws_f.title = "Findings"
+    headers = ["Severity", "ParcelID", "Code", "Message", "Regulatory reference"]
     ws_f.append(headers)
     for f in _sorted_findings(findings):
-        ws_f.append([f.severity, f.parcel_id or "(archivo completo)", f.code, f.message, f.reference])
+        ws_f.append([f.severity, f.parcel_id or "(whole file)", f.code, f.message, f.reference])
 
-    # ---- Hoja Parcelas (una fila por parcela, con formula de Estado) ----
-    ws_p = wb.create_sheet("Parcelas")
-    ws_p.append(["ParcelID", "Tipo de geometria", "Area calculada (ha)",
-                 "Area declarada (ha)", "ProducerCountry", "Estado"])
+    # ---- Parcels sheet (one row per parcel, with a Status formula) ----
+    ws_p = wb.create_sheet("Parcels")
+    ws_p.append(["ParcelID", "Geometry type", "Computed area (ha)",
+                 "Declared area (ha)", "ProducerCountry", "Status"])
     n_parcels = 0
     if not gdf.empty:
         for i, (idx, row) in enumerate(gdf.iterrows(), start=2):
@@ -264,51 +269,51 @@ def generate_excel(gdf, findings, areas_ha, input_filename, path, commodity="Mad
                 declared = None
             ws_p.append([
                 row["ParcelID"], gtype, area_calc, declared, row.get("ProducerCountry"),
-                # COUNTIFS con comodines: soporta el caso de PARCELS_OVERLAP,
-                # cuyo ParcelID en Hallazgos viene combinado ("A / B") porque
-                # involucra dos parcelas a la vez.
-                f'=IF(COUNTIFS(Hallazgos!A:A,"ERROR",Hallazgos!B:B,"*"&A{i}&"*")>0,"Con error","Apto")'
+                # COUNTIFS with wildcards: supports the PARCELS_OVERLAP case,
+                # whose ParcelID in Findings is combined ("A / B") because it
+                # involves two parcels at once.
+                f'=IF(COUNTIFS(Findings!A:A,"ERROR",Findings!B:B,"*"&A{i}&"*")>0,"Has error","Ready")'
             ])
-    # Parcelas que fallaron tan temprano en la ingesta que nunca llegaron a
-    # tener geometría (lat/lon faltante, geometría prohibida, etc.) — se
-    # listan igual, con los campos geométricos vacíos, para que no
-    # desaparezcan silenciosamente del informe.
+    # Parcels that failed so early in ingestion that they never got a
+    # geometry (missing lat/lon, prohibited geometry, etc.) are still
+    # listed, with empty geometric fields, so they do not silently
+    # disappear from the report.
     for pid in failed_ids:
         n_parcels += 1
         i = n_parcels + 1
         ws_p.append([
-            pid, "(sin geometría válida)", None, None, None,
-            f'=IF(COUNTIFS(Hallazgos!A:A,"ERROR",Hallazgos!B:B,"*"&A{i}&"*")>0,"Con error","Apto")'
+            pid, "(no valid geometry)", None, None, None,
+            f'=IF(COUNTIFS(Findings!A:A,"ERROR",Findings!B:B,"*"&A{i}&"*")>0,"Has error","Ready")'
         ])
 
-    # ---- Hoja Resumen (formulas sobre las otras dos hojas) ----
-    ws_r = wb.create_sheet("Resumen", 0)
-    ws_r.append(["Informe de calidad — Validador de geometrías de proveedores (EUDR)"])
-    ws_r.append(["Archivo de entrada", input_filename])
-    ws_r.append(["Fecha de generación", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
+    # ---- Summary sheet (formulas over the other two sheets) ----
+    ws_r = wb.create_sheet("Summary", 0)
+    ws_r.append(["Quality report: EUDR supplier geometry validator"])
+    ws_r.append(["Input file", input_filename])
+    ws_r.append(["Generated", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")])
     ws_r.append(["Commodity", commodity])
-    ws_r.append(["Formato de referencia", "EUDR GeoJSON File Description v1.5 (Reglamento 2024/3084)"])
+    ws_r.append(["Reference format", "EUDR GeoJSON File Description v1.5 (Regulation 2024/3084)"])
     ws_r.append([])
-    ws_r.append(["Métrica", "Valor"])
+    ws_r.append(["Metric", "Value"])
     last_p = n_parcels + 1
     last_f = len(findings) + 1
-    ws_r.append(["Parcelas evaluadas", f"=COUNTA(Parcelas!A2:A{last_p})" if n_parcels else 0])
-    ws_r.append(["Parcelas aptas para presentar tal cual",
-                  f'=COUNTIF(Parcelas!F2:F{last_p},"Apto")' if n_parcels else 0])
-    ws_r.append(["Parcelas con error bloqueante",
-                  f'=COUNTIF(Parcelas!F2:F{last_p},"Con error")' if n_parcels else 0])
-    ws_r.append(["Errores bloqueantes (total)",
-                  f'=COUNTIF(Hallazgos!A2:A{last_f},"ERROR")' if findings else 0])
-    ws_r.append(["Advertencias (no bloqueantes)",
-                  f'=COUNTIF(Hallazgos!A2:A{last_f},"WARNING")' if findings else 0])
-    ws_r.append(["Notas de conversión",
-                  f'=COUNTIF(Hallazgos!A2:A{last_f},"INFO")' if findings else 0])
+    ws_r.append(["Parcels evaluated", f"=COUNTA(Parcels!A2:A{last_p})" if n_parcels else 0])
+    ws_r.append(["Parcels ready to submit as-is",
+                  f'=COUNTIF(Parcels!F2:F{last_p},"Ready")' if n_parcels else 0])
+    ws_r.append(["Parcels with blocking error",
+                  f'=COUNTIF(Parcels!F2:F{last_p},"Has error")' if n_parcels else 0])
+    ws_r.append(["Blocking errors (total)",
+                  f'=COUNTIF(Findings!A2:A{last_f},"ERROR")' if findings else 0])
+    ws_r.append(["Warnings (non-blocking)",
+                  f'=COUNTIF(Findings!A2:A{last_f},"WARNING")' if findings else 0])
+    ws_r.append(["Conversion notes",
+                  f'=COUNTIF(Findings!A2:A{last_f},"INFO")' if findings else 0])
     ws_r.append([])
-    ws_r.append(["Qué significa \"apto\": la parcela no tiene ningún hallazgo de "
-                  "severidad Error bloqueante. El GeoJSON de salida incluye "
-                  "únicamente las parcelas aptas."])
+    ws_r.append(["What \"ready\" means: the parcel has no finding of "
+                  "severity Blocking error. The output GeoJSON contains "
+                  "only the ready parcels."])
 
-    # ---- estilo ----
+    # ---- style ----
     header_fill = PatternFill(start_color="2F5233", end_color="2F5233", fill_type="solid")
     header_font = Font(name="Arial", bold=True, color="FFFFFF")
     title_font = Font(name="Arial", bold=True, size=14)
@@ -342,8 +347,8 @@ def generate_excel(gdf, findings, areas_ha, input_filename, path, commodity="Mad
     ws_r.column_dimensions["A"].width = 42
     ws_r.column_dimensions["B"].width = 70
 
-    # configuración de impresión: horizontal, ajustada a 1 página de ancho
-    # (por si alguien lo imprime o lo exporta a PDF, además de abrirlo en Excel)
+    # print setup: landscape, fit to 1 page wide
+    # (in case someone prints it or exports it to PDF, besides opening it in Excel)
     for ws in (ws_r, ws_p, ws_f):
         ws.page_setup.orientation = "landscape"
         ws.page_setup.fitToWidth = 1

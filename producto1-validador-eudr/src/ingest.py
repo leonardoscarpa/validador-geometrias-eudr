@@ -1,17 +1,17 @@
 """
-Ingesta: toma un archivo de entrada (GeoJSON, CSV o Excel) y lo convierte a un
-GeoDataFrame interno común con columnas:
+Ingestion: takes an input file (GeoJSON, CSV or Excel) and converts it to a
+common internal GeoDataFrame with columns:
     geometry, ParcelID, ProducerName, ProducerCountry, ProductionPlace,
     Area, CommonName, ScientificName
 
-Además devuelve los hallazgos (Finding) detectados durante la conversión misma
-— por ejemplo, un grupo de solo 2 vértices no puede convertirse en nada válido,
-o metadatos inconsistentes entre las filas de una misma parcela.
+It also returns the findings detected during the conversion itself, for
+example a group of only 2 vertices cannot become anything valid, or metadata
+that is inconsistent across the rows of one parcel.
 
-Los chequeos de "calidad geométrica" que dependen de la geometría YA construida
-(auto-intersección, superposición entre parcelas, regla de 4 ha, etc.) viven en
-validators.py y se aplican por igual sin importar si el dato vino de GeoJSON,
-CSV o Excel — ese es justamente el punto de tener un modelo interno común.
+The "geometric quality" checks that depend on the ALREADY built geometry
+(self-intersection, overlap between parcels, the 4 ha rule, etc.) live in
+validators.py and apply equally whether the data came from GeoJSON, CSV or
+Excel. That is precisely the point of having a common internal model.
 """
 
 import json
@@ -29,24 +29,21 @@ from .common import (
 
 OUTPUT_COLUMNS = ["geometry", "ParcelID"] + CANONICAL_PROPS
 
-# alias case-insensitive de columnas tabulares -> nombre canónico interno
+# case-insensitive aliases of tabular columns -> internal canonical name
 _TABULAR_ALIASES = {
     "parcelid": "ParcelID", "parcel_id": "ParcelID", "id": "ParcelID",
-    "lat": "Latitude", "latitude": "Latitude", "latitud": "Latitude",
+    "lat": "Latitude", "latitude": "Latitude",
     "lon": "Longitude", "lng": "Longitude", "long": "Longitude",
-    "longitude": "Longitude", "longitud": "Longitude",
+    "longitude": "Longitude",
     "vertexorder": "VertexOrder", "vertex_order": "VertexOrder",
-    "orden": "VertexOrder", "punto": "VertexOrder",
+    "order": "VertexOrder", "point": "VertexOrder",
     "producercountry": "ProducerCountry", "country": "ProducerCountry",
-    "pais": "ProducerCountry", "país": "ProducerCountry",
-    "producername": "ProducerName", "productor": "ProducerName",
-    "productionplace": "ProductionPlace", "lugar": "ProductionPlace",
-    "finca": "ProductionPlace", "predio": "ProductionPlace",
-    "area": "Area", "superficie": "Area", "hectareas": "Area", "ha": "Area",
-    "commonname": "CommonName", "nombre_comun": "CommonName",
-    "nombrecomun": "CommonName",
-    "scientificname": "ScientificName", "nombre_cientifico": "ScientificName",
-    "nombrecientifico": "ScientificName",
+    "producername": "ProducerName", "producer": "ProducerName",
+    "productionplace": "ProductionPlace", "place": "ProductionPlace",
+    "farm": "ProductionPlace",
+    "area": "Area", "hectares": "Area", "ha": "Area",
+    "commonname": "CommonName", "common_name": "CommonName",
+    "scientificname": "ScientificName", "scientific_name": "ScientificName",
 }
 
 
@@ -67,8 +64,8 @@ def load_any(path):
     else:
         findings = [Finding(
             ERROR, "UNSUPPORTED_FORMAT",
-            f"Extensión de archivo no soportada: '{ext}'. Se aceptan .geojson, "
-            ".json, .csv, .xlsx.", "Producto 1 — formatos de entrada soportados")]
+            f"Unsupported file extension: '{ext}'. Accepted: .geojson, "
+            ".json, .csv, .xlsx.", "Product 1: supported input formats")]
         return IngestResult(gdf=_empty_gdf(), findings=findings, source_format=ext)
 
 
@@ -77,34 +74,34 @@ def load_any(path):
 # ---------------------------------------------------------------------------
 
 def _check_polygon_coordinates(rings, pid, label=""):
-    """Aplica los chequeos de huecos / vértices mínimos / cierre / rango y
-    precisión de coordenadas a UN polígono ya extraído de las coordenadas
-    crudas (coordinates[0] de un Polygon, o cada sub-polígono dentro de un
-    MultiPolygon). `label` es un sufijo como " (parte 2/3)" para que los
-    hallazgos de un MultiPolygon digan a qué parte corresponden."""
+    """Applies the hole / minimum vertices / closure / coordinate range and
+    precision checks to ONE polygon already extracted from the raw
+    coordinates (coordinates[0] of a Polygon, or each sub-polygon inside a
+    MultiPolygon). `label` is a suffix like " (part 2/3)" so findings from a
+    MultiPolygon say which part they refer to."""
     findings = []
     if len(rings) > 1:
         findings.append(Finding(
             ERROR, "POLY_HAS_HOLES",
-            f"El polígono{label} tiene {len(rings) - 1} anillo(s) interior(es) "
-            "(hueco tipo 'dona'), lo cual está prohibido.",
+            f"The polygon{label} has {len(rings) - 1} interior ring(s) "
+            "(a 'donut' hole), which is prohibited.",
             REF_GEOJSON_SPEC, parcel_id=pid))
     if rings:
         ext_ring = rings[0]
         if len(ext_ring) < 4:
             findings.append(Finding(
                 ERROR, "POLY_TOO_FEW_VERTICES",
-                f"El polígono{label} tiene {len(ext_ring)} pares de coordenadas; "
-                "se requieren al menos 4 (incluyendo el cierre).",
+                f"The polygon{label} has {len(ext_ring)} coordinate pairs; "
+                "at least 4 are required (including the closing point).",
                 REF_GEOJSON_SPEC, parcel_id=pid))
         elif ext_ring[0] != ext_ring[-1]:
             findings.append(Finding(
                 ERROR, "POLY_NOT_CLOSED",
-                f"El polígono{label} no está cerrado: el primer punto debe ser "
-                "idéntico al último.",
+                f"The polygon{label} is not closed: the first point must be "
+                "identical to the last.",
                 REF_GEOJSON_SPEC, parcel_id=pid))
         for vi, (lon, lat) in enumerate(ext_ring):
-            findings.extend(check_coordinate_value(lon, lat, pid, f"vértice {vi}{label}"))
+            findings.extend(check_coordinate_value(lon, lat, pid, f"vertex {vi}{label}"))
     return findings
 
 
@@ -119,7 +116,7 @@ def load_geojson(path):
     if raw.get("type") != "FeatureCollection":
         findings.append(Finding(
             ERROR, "STRUCT_ROOT",
-            f"La raíz del archivo es '{raw.get('type')}', debe ser "
+            f"The file root is '{raw.get('type')}', it must be "
             "'FeatureCollection' (RFC 7946).",
             REF_GEOJSON_SPEC))
         return IngestResult(gdf=_empty_gdf(), findings=findings, source_format="geojson")
@@ -133,22 +130,22 @@ def load_geojson(path):
         gtype = geom_dict.get("type")
         pid = str(props.get("ParcelID") or props.get("ProductionPlace") or f"feature_{i}")
 
-        # capitalización exacta de propiedades
+        # exact property capitalization
         for key in props.keys():
             kl = key.lower()
             if kl in lookup and key != lookup[kl]:
                 findings.append(Finding(
                     WARNING, "PROPERTY_CASE",
-                    f"La propiedad '{key}' debería llamarse exactamente "
-                    f"'{lookup[kl]}'. Los nombres son sensibles a mayúsculas/"
-                    "minúsculas: el Information System la ignora si no coincide.",
+                    f"The property '{key}' should be named exactly "
+                    f"'{lookup[kl]}'. Names are case-sensitive: "
+                    "the Information System ignores it if it does not match.",
                     REF_GEOJSON_SPEC, parcel_id=pid))
 
         if gtype in PROHIBITED_GEOM_TYPES:
             findings.append(Finding(
                 ERROR, "GEOM_TYPE_PROHIBITED",
-                f"Tipo de geometría '{gtype}' no está permitido "
-                "(LineString, MultiLineString y GeometryCollection están prohibidos).",
+                f"Geometry type '{gtype}' is not allowed "
+                "(LineString, MultiLineString and GeometryCollection are prohibited).",
                 REF_GEOJSON_SPEC, parcel_id=pid))
             failed_ids.append(pid)
             continue
@@ -156,23 +153,23 @@ def load_geojson(path):
         if gtype not in ALLOWED_GEOM_TYPES:
             findings.append(Finding(
                 ERROR, "GEOM_TYPE_UNKNOWN",
-                f"Tipo de geometría '{gtype}' no reconocido.",
+                f"Geometry type '{gtype}' not recognized.",
                 REF_GEOJSON_SPEC, parcel_id=pid))
             failed_ids.append(pid)
             continue
 
-        # chequeos que solo se pueden hacer sobre las coordenadas CRUDAS,
-        # antes de que shapely normalice el anillo (shapely cierra polígonos
-        # automáticamente al parsear, así que después de shape() ya no se
-        # puede saber si el archivo original venía cerrado o no).
-        # Se aplican por igual a los tipos simples (Polygon/Point) y a sus
-        # versiones multipart (MultiPolygon/MultiPoint), parte por parte.
+        # checks that can only be done on the RAW coordinates, before shapely
+        # normalizes the ring (shapely closes polygons automatically when
+        # parsing, so after shape() it is no longer possible to know whether
+        # the original file was closed or not).
+        # They apply equally to simple types (Polygon/Point) and to their
+        # multipart versions (MultiPolygon/MultiPoint), part by part.
         if gtype == "Polygon":
             findings.extend(_check_polygon_coordinates(geom_dict.get("coordinates", []), pid))
         elif gtype == "MultiPolygon":
             parts = geom_dict.get("coordinates", [])
             for pi, part_rings in enumerate(parts):
-                label = f" (parte {pi + 1}/{len(parts)})"
+                label = f" (part {pi + 1}/{len(parts)})"
                 findings.extend(_check_polygon_coordinates(part_rings, pid, label))
         elif gtype == "Point":
             coords = geom_dict.get("coordinates", [None, None])
@@ -183,14 +180,14 @@ def load_geojson(path):
             for vi, coords in enumerate(coords_list):
                 if len(coords) >= 2:
                     findings.extend(check_coordinate_value(
-                        coords[0], coords[1], pid, f"punto {vi + 1}/{len(coords_list)}"))
+                        coords[0], coords[1], pid, f"point {vi + 1}/{len(coords_list)}"))
 
         try:
             geom = shape(geom_dict)
         except Exception as e:
             findings.append(Finding(
                 ERROR, "GEOM_INVALID",
-                f"No se pudo interpretar la geometría: {e}",
+                f"Could not interpret the geometry: {e}",
                 "RFC 7946", parcel_id=pid))
             failed_ids.append(pid)
             continue
@@ -203,9 +200,9 @@ def load_geojson(path):
     if file_size_mb > 25:
         findings.append(Finding(
             ERROR, "FILE_TOO_LARGE",
-            f"El archivo pesa {file_size_mb:.1f} MB; el límite por presentación "
-            "es 25 MB. Estrategias: reducir puntos en tramos rectos, usar puntos "
-            "en vez de polígonos para parcelas ≤4 ha, o dividir en varias DDS.",
+            f"The file is {file_size_mb:.1f} MB; the per-submission limit "
+            "is 25 MB. Strategies: reduce points on straight stretches, use points "
+            "instead of polygons for parcels ≤4 ha, or split into several DDS.",
             REF_GEOJSON_SPEC))
 
     gdf = _rows_to_gdf(rows)
@@ -213,7 +210,7 @@ def load_geojson(path):
 
 
 # ---------------------------------------------------------------------------
-# CSV / Excel (formato "largo": una fila = un vértice; 1 fila por ParcelID = punto)
+# CSV / Excel ("long" format: one row = one vertex; 1 row per ParcelID = point)
 # ---------------------------------------------------------------------------
 
 def load_tabular(path, fmt="csv"):
@@ -223,7 +220,7 @@ def load_tabular(path, fmt="csv"):
     else:
         df = pd.read_excel(path, dtype=str)
 
-    # normalizar encabezados a nombres canónicos (case-insensitive)
+    # normalize headers to canonical names (case-insensitive)
     rename = {}
     for col in df.columns:
         key = str(col).strip().lower()
@@ -236,8 +233,8 @@ def load_tabular(path, fmt="csv"):
     if missing:
         findings.append(Finding(
             ERROR, "ING_MISSING_COLUMNS",
-            f"Faltan columnas obligatorias en el archivo: {', '.join(sorted(missing))}.",
-            "Producto 1 — esquema de entrada tabular"))
+            f"Required columns are missing from the file: {', '.join(sorted(missing))}.",
+            "Product 1: tabular input schema"))
         return IngestResult(gdf=_empty_gdf(), findings=findings, source_format=fmt)
 
     if "VertexOrder" not in df.columns:
@@ -260,7 +257,7 @@ def load_tabular(path, fmt="csv"):
     if file_size_mb > 25:
         findings.append(Finding(
             ERROR, "FILE_TOO_LARGE",
-            f"El archivo pesa {file_size_mb:.1f} MB; el límite por presentación es 25 MB.",
+            f"The file is {file_size_mb:.1f} MB; the per-submission limit is 25 MB.",
             REF_GEOJSON_SPEC))
 
     return IngestResult(gdf=gdf, findings=findings, source_format=fmt, failed_ids=failed_ids)
@@ -269,7 +266,7 @@ def load_tabular(path, fmt="csv"):
 def _build_geometry_for_group(pid, group):
     findings = []
 
-    # metadatos: deben ser consistentes dentro de la misma parcela
+    # metadata: must be consistent within the same parcel
     meta = {}
     for prop in CANONICAL_PROPS:
         if prop not in group.columns:
@@ -279,9 +276,9 @@ def _build_geometry_for_group(pid, group):
         if len(values) > 1:
             findings.append(Finding(
                 WARNING, "ING_METADATA_INCONSISTENT",
-                f"La propiedad '{prop}' tiene valores distintos entre filas de la "
-                f"misma parcela ({values}); se usó el primero.",
-                "Producto 1 — consistencia de metadatos por ParcelID", parcel_id=pid))
+                f"The property '{prop}' has different values across rows of the "
+                f"same parcel ({values}); the first one was used.",
+                "Product 1: metadata consistency per ParcelID", parcel_id=pid))
         meta[prop] = values[0] if values else None
 
     n = len(group)
@@ -292,7 +289,7 @@ def _build_geometry_for_group(pid, group):
         if pd.isna(lon) or pd.isna(lat):
             findings.append(Finding(
                 ERROR, "ING_MISSING_LATLON",
-                "Falta Latitude o Longitude.", "Producto 1 — esquema de entrada tabular",
+                "Latitude or Longitude is missing.", "Product 1: tabular input schema",
                 parcel_id=pid))
             return None, findings
         findings.extend(check_coordinate_value(lon, lat, pid))
@@ -301,17 +298,17 @@ def _build_geometry_for_group(pid, group):
         except ValueError:
             findings.append(Finding(
                 ERROR, "COORD_NOT_NUMERIC",
-                f"Coordenada no numérica: lon={lon!r}, lat={lat!r}.",
+                f"Non-numeric coordinate: lon={lon!r}, lat={lat!r}.",
                 REF_GEOJSON_SPEC, parcel_id=pid))
             return None, findings
 
     elif n == 2:
         findings.append(Finding(
             ERROR, "ING_TWO_VERTICES",
-            "La parcela tiene exactamente 2 filas de vértices: no alcanza para "
-            "un polígono (mínimo 3 vértices distintos) y no es un único punto. "
-            "Revisar si falta un vértice o si se declaró de más.",
-            "Producto 1 — esquema de entrada tabular", parcel_id=pid))
+            "The parcel has exactly 2 vertex rows: not enough for "
+            "a polygon (minimum 3 distinct vertices) and not a single point. "
+            "Check whether a vertex is missing or one was declared too many.",
+            "Product 1: tabular input schema", parcel_id=pid))
         return None, findings
 
     else:
@@ -323,9 +320,9 @@ def _build_geometry_for_group(pid, group):
             except ValueError:
                 findings.append(Finding(
                     WARNING, "ING_VERTEXORDER_NOT_NUMERIC",
-                    "VertexOrder tiene valores no numéricos; se usó el orden de "
-                    "las filas en el archivo.",
-                    "Producto 1 — esquema de entrada tabular", parcel_id=pid))
+                    "VertexOrder has non-numeric values; the row order in the "
+                    "file was used.",
+                    "Product 1: tabular input schema", parcel_id=pid))
         coords = []
         bad = False
         for _, r in g.iterrows():
@@ -333,8 +330,8 @@ def _build_geometry_for_group(pid, group):
             if pd.isna(lon) or pd.isna(lat):
                 findings.append(Finding(
                     ERROR, "ING_MISSING_LATLON",
-                    "Falta Latitude o Longitude en uno de los vértices.",
-                    "Producto 1 — esquema de entrada tabular", parcel_id=pid))
+                    "Latitude or Longitude is missing on one of the vertices.",
+                    "Product 1: tabular input schema", parcel_id=pid))
                 bad = True
                 continue
             findings.extend(check_coordinate_value(lon, lat, pid))
@@ -343,7 +340,7 @@ def _build_geometry_for_group(pid, group):
             except ValueError:
                 findings.append(Finding(
                     ERROR, "COORD_NOT_NUMERIC",
-                    f"Coordenada no numérica: lon={lon!r}, lat={lat!r}.",
+                    f"Non-numeric coordinate: lon={lon!r}, lat={lat!r}.",
                     REF_GEOJSON_SPEC, parcel_id=pid))
                 bad = True
         if bad or len(coords) < 3:
@@ -353,25 +350,25 @@ def _build_geometry_for_group(pid, group):
             coords.append(coords[0])
             findings.append(Finding(
                 INFO, "ING_AUTOCLOSE",
-                "El polígono se cerró automáticamente repitiendo el primer "
-                "vértice al final (el archivo de origen no lo traía repetido, "
-                "práctica habitual en planillas).",
-                "Producto 1 — conversión tabular → GeoJSON", parcel_id=pid))
+                "The polygon was closed automatically by repeating the first "
+                "vertex at the end (the source file did not repeat it, "
+                "which is common practice in spreadsheets).",
+                "Product 1: tabular to GeoJSON conversion", parcel_id=pid))
 
         try:
             geom = Polygon(coords)
         except Exception as e:
             findings.append(Finding(
                 ERROR, "GEOM_INVALID",
-                f"No se pudo construir el polígono: {e}",
+                f"Could not build the polygon: {e}",
                 "RFC 7946", parcel_id=pid))
             return None, findings
 
         if not geom.is_valid:
             findings.append(Finding(
                 ERROR, "GEOM_SELF_INTERSECTION",
-                "La secuencia de vértices produce una geometría inválida "
-                "(auto-intersectada, tipo 'ocho'). Revisar el orden de los vértices.",
+                "The vertex sequence produces an invalid geometry "
+                "(self-intersecting, figure-eight shape). Check the vertex order.",
                 REF_GEOJSON_SPEC, parcel_id=pid))
             return None, findings
 

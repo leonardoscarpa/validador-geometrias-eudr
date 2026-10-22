@@ -1,16 +1,16 @@
 """
-Ingesta del Scorecard: lee la misma planilla "larga" de parcelas del
-Producto 1, PERO reconociendo columnas adicionales con las señales del
-Art. 10 que no se pueden calcular solas (pueblos indígenas, cadena de
-suministro, certificaciones, historial de incumplimiento).
+Scorecard ingestion: reads the same "long" parcel spreadsheet as Product 1,
+BUT recognizing additional columns with the Art. 10 signals that cannot be
+computed on their own (indigenous peoples, supply chain, certifications,
+non-compliance history).
 
-Dos niveles de agregación:
-  filas (vértices)  ->  parcelas (por ParcelID)  ->  proveedores (por ProducerName)
+Two aggregation levels:
+  rows (vertices)  ->  parcels (by ParcelID)  ->  suppliers (by ProducerName)
 
-Las columnas cualitativas deberían ser CONSISTENTES entre todas las parcelas
-de un mismo proveedor (son atributos del proveedor, no de la parcela). Si no
-lo son, se documenta como advertencia y se toma el valor que implica MÁS
-riesgo — nunca se descarta en silencio una señal de riesgo declarada.
+The qualitative columns should be CONSISTENT across all parcels of the same
+supplier (they are supplier attributes, not parcel attributes). If they are
+not, this is documented as a warning and the value implying MORE risk is
+taken. A declared risk signal is never silently discarded.
 """
 
 import pandas as pd
@@ -19,20 +19,20 @@ from .country_risk import country_risk_tier, RISK_ORDER
 
 BASE_ALIASES = {
     "parcelid": "ParcelID", "parcel_id": "ParcelID", "id": "ParcelID",
-    "producername": "ProducerName", "productor": "ProducerName", "proveedor": "ProducerName",
-    "producercountry": "ProducerCountry", "country": "ProducerCountry", "pais": "ProducerCountry",
-    "area": "Area", "superficie": "Area", "hectareas": "Area",
+    "producername": "ProducerName", "producer": "ProducerName", "supplier": "ProducerName",
+    "producercountry": "ProducerCountry", "country": "ProducerCountry",
+    "area": "Area", "hectares": "Area",
 }
 
 QUALITATIVE_ALIASES = {
-    "indigenouspeoples": "IndigenousPeoplesPresence", "pueblosindigenas": "IndigenousPeoplesPresence",
+    "indigenouspeoples": "IndigenousPeoplesPresence",
     "indigenouspeoplespresence": "IndigenousPeoplesPresence",
-    "indigenousconsultation": "IndigenousConsultation", "consultaindigena": "IndigenousConsultation",
-    "supplychainintermediaries": "SupplyChainIntermediaries", "intermediarios": "SupplyChainIntermediaries",
-    "mixingriskdeclared": "MixingRiskDeclared", "riesgomezcla": "MixingRiskDeclared",
+    "indigenousconsultation": "IndigenousConsultation",
+    "supplychainintermediaries": "SupplyChainIntermediaries", "intermediaries": "SupplyChainIntermediaries",
+    "mixingriskdeclared": "MixingRiskDeclared", "mixingrisk": "MixingRiskDeclared",
     "priornoncomplianceincidents": "PriorNonComplianceIncidents",
-    "incumplimientosprevios": "PriorNonComplianceIncidents",
-    "voluntarycertification": "VoluntaryCertification", "certificacion": "VoluntaryCertification",
+    "priorincidents": "PriorNonComplianceIncidents",
+    "voluntarycertification": "VoluntaryCertification", "certification": "VoluntaryCertification",
 }
 
 ALL_ALIASES = {**BASE_ALIASES, **QUALITATIVE_ALIASES}
@@ -52,7 +52,7 @@ def _yesno(v):
     if v is None or (isinstance(v, float) and pd.isna(v)):
         return None
     s = str(v).strip().lower()
-    if s in ("yes", "si", "sí", "y", "true", "1"):
+    if s in ("yes", "y", "true", "1"):
         return True
     if s in ("no", "n", "false", "0"):
         return False
@@ -69,7 +69,7 @@ def _num(v, default=0):
 
 
 def load_supplier_rows(path):
-    """Devuelve (suppliers, warnings) donde suppliers es una lista de dicts:
+    """Returns (suppliers, warnings) where suppliers is a list of dicts:
     {producer_name, total_area_ha, countries:set, worst_country_tier,
      indigenous_present, indigenous_consulted, max_intermediaries,
      mixing_risk, total_incidents, certification, parcels:[ParcelID,...]}
@@ -85,11 +85,11 @@ def load_supplier_rows(path):
     required = {"ParcelID", "ProducerName", "ProducerCountry"}
     missing = required - set(df.columns)
     if missing:
-        warnings.append(f"Faltan columnas obligatorias: {', '.join(sorted(missing))}.")
+        warnings.append(f"Required columns are missing: {', '.join(sorted(missing))}.")
         return [], warnings
 
-    # nivel 1: colapsar a una fila por ParcelID (toma el primer valor no nulo
-    # de cada campo dentro del grupo — mismo criterio que el Producto 1)
+    # level 1: collapse to one row per ParcelID (takes the first non-null
+    # value of each field within the group, same criterion as Product 1)
     parcel_rows = []
     for pid, g in df.groupby("ParcelID", dropna=False):
         rec = {"ParcelID": pid}
@@ -101,12 +101,12 @@ def load_supplier_rows(path):
                 rec[col] = None
         parcel_rows.append(rec)
 
-    # nivel 2: agregar por ProducerName
+    # level 2: aggregate by ProducerName
     suppliers = {}
     for rec in parcel_rows:
         name = rec.get("ProducerName")
         if not name or str(name).strip() == "":
-            warnings.append(f"Parcela '{rec['ParcelID']}' sin ProducerName — excluida del scorecard.")
+            warnings.append(f"Parcel '{rec['ParcelID']}' has no ProducerName and was excluded from the scorecard.")
             continue
         name = str(name).strip()
         s = suppliers.setdefault(name, {
@@ -124,8 +124,8 @@ def load_supplier_rows(path):
         if ind:
             s["indigenous_present"] = True
             cons = _yesno(rec.get("IndigenousConsultation"))
-            # si CUALQUIER parcela con pueblos indígenas no tiene consulta
-            # documentada, el proveedor completo queda marcado como "sin consulta"
+            # if ANY parcel with indigenous peoples lacks documented
+            # consultation, the whole supplier is marked as "no consultation"
             if cons is not True:
                 s["indigenous_consulted"] = False
 
@@ -137,18 +137,18 @@ def load_supplier_rows(path):
         s["total_incidents"] += _num(rec.get("PriorNonComplianceIncidents"), 0)
 
         cert = rec.get("VoluntaryCertification")
-        if cert and str(cert).strip().lower() not in ("none", "ninguna", "no", ""):
+        if cert and str(cert).strip().lower() not in ("none", "no", ""):
             s["certifications"].add(str(cert).strip())
 
     for s in suppliers.values():
         if len(s["countries"]) > 1:
             warnings.append(
-                f"Proveedor '{s['producer_name']}' tiene parcelas en más de un país "
-                f"({', '.join(sorted(s['countries']))}); se usó el de mayor riesgo para el puntaje."
+                f"Supplier '{s['producer_name']}' has parcels in more than one country "
+                f"({', '.join(sorted(s['countries']))}); the highest-risk one was used for scoring."
             )
-        tiers = [country_risk_tier(c) for c in s["countries"]] or ["Estándar"]
+        tiers = [country_risk_tier(c) for c in s["countries"]] or ["Standard"]
         s["worst_country_tier"] = max(tiers, key=lambda t: RISK_ORDER[t])
         if not s["indigenous_present"]:
-            s["indigenous_consulted"] = None  # no aplica
+            s["indigenous_consulted"] = None  # not applicable
 
     return list(suppliers.values()), warnings

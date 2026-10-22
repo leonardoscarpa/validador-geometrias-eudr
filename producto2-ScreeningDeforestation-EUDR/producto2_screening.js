@@ -1,43 +1,41 @@
 // ============================================================================
-// PRODUCTO 2 — EUDR Deforestation Screening
-// Verifica cada parcela contra la fecha de corte del 31/12/2020.
+// PRODUCT 2: EUDR Deforestation Screening
+// Checks each parcel against the 31/12/2020 cutoff date.
 //
-// DECISIÓN DE DISEÑO CLAVE: JRC/GFC2020/V3 es una FOTO FIJA al 31/12/2020
-// (un solo instante, banda "Map" = 1 si había bosque). Por sí sola NO puede
-// decirnos si ese bosque se taló DESPUÉS — para eso usamos JRC Tropical
-// Moist Forest (TMF) v1_2025, que sí tiene capas de "año de deforestación"
-// y "año de degradación" pixel por pixel.
+// KEY DESIGN DECISION: JRC/GFC2020/V3 is a SNAPSHOT at 31/12/2020
+// (a single instant, band "Map" = 1 if there was forest). On its own it
+// CANNOT tell us whether that forest was cleared AFTER that date. For that
+// we use JRC Tropical Moist Forest (TMF) v1_2025, which does have
+// "deforestation year" and "degradation year" layers pixel by pixel.
 //
-// PARA MADERA (el commodity de foco de este portfolio), el Art. 2 del
-// Reglamento exige que la madera "haya sido cosechada sin inducir
-// degradación forestal" después del corte — no alcanza con que no se haya
-// deforestado. Por eso este script chequea DEFORESTACIÓN *y* DEGRADACIÓN,
-// no solo una de las dos. La mayoría de las demos que vas a ver por ahí
-// solo chequean deforestación.
+// FOR WOOD (the focus commodity of this portfolio), Art. 2 of the
+// Regulation requires that the wood "has been harvested without inducing
+// forest degradation" after the cutoff. Not having deforested is not enough.
+// That is why this script checks DEFORESTATION *and* DEGRADATION, not just
+// one of the two. Most demos you will see out there only check deforestation.
 //
-// DESCALIFICACIÓN SIN UMBRAL (Art. 9): un solo píxel de deforestación o
-// degradación post-2020 dentro del polígono descalifica TODA la parcela.
-// No hay porcentaje de tolerancia.
+// ZERO-THRESHOLD DISQUALIFICATION (Art. 9): a single pixel of post-2020
+// deforestation or degradation inside the polygon disqualifies the WHOLE
+// parcel. There is no tolerance percentage.
 //
-// LIMITACIÓN CONOCIDA (documentada a propósito, no un bug escondido): TMF
-// cubre el dominio de "bosque húmedo tropical". Misiones (selva paranaense)
-// probablemente cae dentro; partes de Corrientes, más seca y al sur, pueden
-// quedar FUERA del área mapeada por TMF. Cuando eso pasa, el script NO
-// asume "apto" en silencio — devuelve "NEEDS_REVIEW_NO_TMF_COVERAGE" para
-// que quede claro que ahí hace falta otra fuente de datos.
+// KNOWN LIMITATION (documented on purpose, not a hidden bug): TMF covers the
+// "tropical moist forest" domain. Misiones (Paranaense rainforest) likely
+// falls inside; parts of Corrientes, drier and further south, may fall
+// OUTSIDE the area mapped by TMF. When that happens the script does NOT
+// silently assume "compliant". It returns "NEEDS_REVIEW_NO_TMF_COVERAGE" so
+// it is clear that another data source is needed there.
 // ============================================================================
 
 
 // ---------------------------------------------------------------------------
-// 1) PARCELAS DE PRUEBA
+// 1) TEST PARCELS
 // ---------------------------------------------------------------------------
-// Tres parcelas sintéticas para probar el script: una en Misiones (selva,
-// más probable que TMF la cubra), una en Corrientes (más al sur, posible
-// que quede fuera del dominio de TMF), y una en Santiago del Estero (zona
-// de desmonte activo bien documentado, para confirmar que el script SÍ
-// detecta un caso real). Cajas agrandadas (~16x16 km y ~33x33 km) para que
-// el resultado se vea mejor en el mapa y para aumentar la chance de
-// capturar área efectivamente desmontada.
+// Three synthetic parcels to test the script: one in Misiones (rainforest,
+// most likely covered by TMF), one in Corrientes (further south, may fall
+// outside the TMF domain), and one in Santiago del Estero (a well-documented
+// active clearing zone, to confirm the script DOES detect a real case).
+// Enlarged boxes (~16x16 km and ~33x33 km) so the result is easier to see on
+// the map and to increase the chance of capturing actually cleared area.
 
 var parcels = ee.FeatureCollection([
   ee.Feature(
@@ -56,33 +54,32 @@ var parcels = ee.FeatureCollection([
     {ParcelID: 'CTES-TEST-1', ProducerCountry: 'AR',
      CommonName: 'Eucalyptus', ScientificName: 'Eucalyptus grandis'}
   ),
-  // NUEVO (2do intento): caja en el departamento Copo, Santiago del Estero.
-  // A diferencia de Anta (Salta) — probado antes, dio COMPLIANT — Copo
-  // aparece citado explícitamente como una de las zonas "más afectadas" por
-  // desmonte reciente (junto con Alberdi, Pellegrini y Moreno), y Santiago
-  // del Estero es, en CADA informe anual 2021-2025 que encontré, la
-  // provincia con más hectáreas desmontadas del país — más que Salta en
-  // los años recientes, aunque Salta tenga un acumulado histórico mayor.
-  // Caja de ~33x33 km centrada en el departamento para maximizar la chance
-  // de capturar área realmente desmontada post-2020.
+  // Box in the Copo department, Santiago del Estero. Unlike Anta (Salta),
+  // tested earlier and returned COMPLIANT, Copo is explicitly cited as one of
+  // the areas "most affected" by recent clearing (together with Alberdi,
+  // Pellegrini and Moreno), and Santiago del Estero is, in EVERY annual
+  // 2021-2025 report I found, the province with the most hectares cleared in
+  // the country, more than Salta in recent years, even though Salta has a
+  // larger historical total. ~33x33 km box centered on the department to
+  // maximize the chance of capturing genuinely cleared area after 2020.
   ee.Feature(
     ee.Geometry.Polygon([[
       [-62.981, -25.656], [-62.681, -25.656],
       [-62.681, -25.956], [-62.981, -25.956], [-62.981, -25.656]
     ]]),
     {ParcelID: 'SDE-COPO-TEST-1', ProducerCountry: 'AR',
-     CommonName: 'N/A (control negativo)', ScientificName: 'N/A'}
+     CommonName: 'N/A (negative control)', ScientificName: 'N/A'}
   )
 ]);
 
-// --- PARA USAR TUS PROPIAS PARCELAS (el output.geojson del Producto 1) ---
-// 1. Panel izquierdo > pestaña "Assets" > "NEW" > "Table upload" > subís el
-//    .geojson. Tarda un par de minutos en procesarse.
-// 2. Reemplazás el bloque de arriba por:
-//      var parcels = ee.FeatureCollection('users/TU_USUARIO/TU_ASSET');
-// 3. El resto del script no necesita ningún otro cambio, siempre que tus
-//    propiedades usen los mismos nombres (ParcelID, ProducerCountry, etc.)
-//    que ya vienen del Producto 1.
+// --- TO USE YOUR OWN PARCELS (the output.geojson from Product 1) ---
+// 1. Left panel > "Assets" tab > "NEW" > "Table upload" > upload the
+//    .geojson. It takes a couple of minutes to process.
+// 2. Replace the block above with:
+//      var parcels = ee.FeatureCollection('users/YOUR_USER/YOUR_ASSET');
+// 3. The rest of the script needs no other change, as long as your
+//    properties use the same names (ParcelID, ProducerCountry, etc.)
+//    that already come from Product 1.
 
 
 // ---------------------------------------------------------------------------
@@ -91,38 +88,38 @@ var parcels = ee.FeatureCollection([
 
 var CUTOFF_YEAR = 2020;
 
-// Foto fija de bosque al 31/12/2020 — se usa solo como CONTEXTO visual, no
-// para la decisión de apto/no apto (eso lo hace TMF, abajo).
+// Forest snapshot at 31/12/2020. Used only as visual CONTEXT, not for the
+// compliant / not compliant decision (TMF does that, below).
 var gfc2020 = ee.Image('JRC/GFC2020/V3').select('Map');
 
-// TMF: año de deforestación y año de degradación, pixel por pixel.
-// mosaic() junta los tiles continentales en una sola imagen continua.
+// TMF: deforestation year and degradation year, pixel by pixel.
+// mosaic() joins the continental tiles into one continuous image.
 var tmfDeforYear = ee.ImageCollection('projects/JRC/TMF/v1_2025/DeforestationYear').mosaic();
 var tmfDegradYear = ee.ImageCollection('projects/JRC/TMF/v1_2025/DegradationYear').mosaic();
 
-// Transition Map: se usa ÚNICAMENTE para saber si TMF tiene cobertura acá
-// (cualquier categoría cuenta como "cobertura", incluso "no es bosque").
-// A diferencia de DeforestationYear, que solo tiene datos donde SÍ hubo
-// deforestación, la Transition Map clasifica todo lo que está dentro del
-// dominio de TMF — por eso es la que sirve para detectar "sin datos".
+// Transition Map: used ONLY to know whether TMF has coverage here
+// (any category counts as "coverage", even "not forest").
+// Unlike DeforestationYear, which only has data where deforestation DID
+// happen, the Transition Map classifies everything inside the TMF domain,
+// which is why it is the one that works for detecting "no data".
 var tmfTransition = ee.ImageCollection('projects/JRC/TMF/v1_2025/TransitionMap_Subtypes').mosaic();
 
 
 // ---------------------------------------------------------------------------
-// 3) EVALUACIÓN POR PARCELA
+// 3) PER-PARCEL EVALUATION
 // ---------------------------------------------------------------------------
 
 function evaluateParcel(feature) {
   var geom = feature.geometry();
 
-  // .unmask(0): los píxeles nunca deforestados/degradados vienen "vacíos"
-  // (sin dato) en TMF, no en 0. Los volvemos 0 explícito ANTES de comparar,
-  // así reduceRegion no se confunde entre "nunca pasó" y "no hay dato".
+  // .unmask(0): pixels never deforested/degraded come back "empty" (no data)
+  // in TMF, not 0. We make them an explicit 0 BEFORE comparing, so
+  // reduceRegion does not confuse "it never happened" with "there is no data".
   var deforAfterCutoff = tmfDeforYear.unmask(0).gt(CUTOFF_YEAR);
   var degradAfterCutoff = tmfDegradYear.unmask(0).gt(CUTOFF_YEAR);
 
-  // .mask() de la Transition Map: 1 donde TMF tiene cualquier clasificación,
-  // 0 donde el píxel está fuera de su dominio (bosque húmedo tropical).
+  // .mask() of the Transition Map: 1 where TMF has any classification,
+  // 0 where the pixel is outside its domain (tropical moist forest).
   var hasCoverageImg = tmfTransition.mask();
 
   var combined = ee.Image.cat([
@@ -132,9 +129,9 @@ function evaluateParcel(feature) {
   ]);
 
   var stats = combined.reduceRegion({
-    reducer: ee.Reducer.max(),  // si UN SOLO píxel dispara, ya alcanza (Art. 9, sin umbral)
+    reducer: ee.Reducer.max(),  // a SINGLE triggering pixel is enough (Art. 9, no threshold)
     geometry: geom,
-    scale: 30,          // resolución nativa de TMF (Landsat)
+    scale: 30,          // native TMF resolution (Landsat)
     maxPixels: 1e9,
     bestEffort: true
   });
@@ -166,17 +163,17 @@ var evaluated = parcels.map(evaluateParcel);
 
 
 // ---------------------------------------------------------------------------
-// 4) SALIDA: consola + mapa
+// 4) OUTPUT: console + map
 // ---------------------------------------------------------------------------
 
-print('=== Resultado por parcela ===', evaluated);
+print('=== Result per parcel ===', evaluated);
 
-// contadores rápidos para el resumen
-print('Aptas (COMPLIANT):',
+// quick counters for the summary
+print('Compliant (COMPLIANT):',
   evaluated.filter(ee.Filter.eq('verdict', 'COMPLIANT')).size());
-print('NO aptas (NOT_COMPLIANT):',
+print('Not compliant (NOT_COMPLIANT):',
   evaluated.filter(ee.Filter.eq('verdict', 'NOT_COMPLIANT')).size());
-print('Necesitan revisión (sin cobertura TMF):',
+print('Need review (no TMF coverage):',
   evaluated.filter(ee.Filter.eq('verdict', 'NEEDS_REVIEW_NO_TMF_COVERAGE')).size());
 
 var compliant = evaluated.filter(ee.Filter.eq('verdict', 'COMPLIANT'));
@@ -184,17 +181,17 @@ var notCompliant = evaluated.filter(ee.Filter.eq('verdict', 'NOT_COMPLIANT'));
 var needsReview = evaluated.filter(ee.Filter.eq('verdict', 'NEEDS_REVIEW_NO_TMF_COVERAGE'));
 
 Map.centerObject(parcels, 9);
-Map.addLayer(gfc2020.selfMask(), {palette: ['4d9221']}, 'JRC bosque 2020 (contexto)', false);
-Map.addLayer(compliant, {color: '2e8b45'}, '✅ Apta (sin deforestación/degradación post-2020)');
-Map.addLayer(notCompliant, {color: 'c0392b'}, '⛔ NO apta (deforestación o degradación detectada)');
-Map.addLayer(needsReview, {color: 'e8a33d'}, '⚠️ Sin cobertura TMF — revisar con otra fuente');
+Map.addLayer(gfc2020.selfMask(), {palette: ['4d9221']}, 'JRC forest 2020 (context)', false);
+Map.addLayer(compliant, {color: '2e8b45'}, '✅ Compliant (no post-2020 deforestation/degradation)');
+Map.addLayer(notCompliant, {color: 'c0392b'}, '⛔ NOT compliant (deforestation or degradation detected)');
+Map.addLayer(needsReview, {color: 'e8a33d'}, '⚠️ No TMF coverage (review with another source)');
 
 
 // ---------------------------------------------------------------------------
-// 5) EXPORTAR RESULTADOS (opcional — corré esta parte cuando quieras el archivo)
+// 5) EXPORT RESULTS (optional: run this part when you want the file)
 // ---------------------------------------------------------------------------
-// Aparece un botón "RUN" en la pestaña "Tasks" (arriba a la derecha) después
-// de correr el script — hay que apretarlo para que el export se dispare.
+// A "RUN" button appears in the "Tasks" tab (top right) after running the
+// script. You have to press it for the export to start.
 
 Export.table.toDrive({
   collection: evaluated,

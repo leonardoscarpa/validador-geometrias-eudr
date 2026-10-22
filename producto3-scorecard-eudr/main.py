@@ -22,13 +22,13 @@ def run(input_path, output_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Scorecard de riesgo de proveedor EUDR (Art. 10)")
+    parser = argparse.ArgumentParser(description="EUDR supplier risk scorecard (Art. 10)")
     parser.add_argument("input")
     parser.add_argument("-o", "--output-dir", default="outputs")
     args = parser.parse_args()
     result = run(args.input, args.output_dir)
-    print(f"Proveedores evaluados: {len(result['scores'])}")
+    print(f"Suppliers evaluated: {len(result['scores'])}")
     for s in result["scores"]:
         print(f"  {s.tier:6s} {s.total_points:5.1f} pts  {s.producer_name}")
     if result["warnings"]:
-        print(f"Advertencias: {len(result['warnings'])}")
+        print(f"Warnings: {len(result['warnings'])}")

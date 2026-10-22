@@ -1,14 +1,14 @@
 """
-Clasificación de riesgo país según el Anexo del Reglamento de Ejecución (UE)
-2025/1093 de la Comisión, del 22/05/2025 (fuente: EUR-Lex, texto del Anexo
-transcripto directamente, no un resumen de tercero).
+Country risk classification according to the Annex of Commission Implementing
+Regulation (EU) 2025/1093 of 22/05/2025 (source: EUR-Lex, Annex text
+transcribed directly, not a third-party summary).
 
-Regla del propio reglamento (Art. 1):
-  1. Los países listados en el Anexo son de riesgo BAJO o ALTO.
-  2. Todo país NO listado mantiene el nivel ESTÁNDAR por defecto.
+Rule of the regulation itself (Art. 1):
+  1. Countries listed in the Annex are LOW or HIGH risk.
+  2. Any country NOT listed keeps the STANDARD level by default.
 
-Por eso acá solo se transcriben las listas de BAJO y ALTO — el resto del
-mundo es ESTÁNDAR por descarte, tal como lo exige el propio texto legal.
+That is why only the LOW and HIGH lists are transcribed here. The rest of
+the world is STANDARD by omission, as the legal text itself requires.
 """
 
 LOW_RISK_COUNTRIES = {
@@ -42,25 +42,26 @@ HIGH_RISK_COUNTRIES = {
     "Belarus", "Democratic People's Republic of Korea", "Myanmar", "Russian Federation",
 }
 
-# alias ISO-2 -> nombre oficial usado en el Anexo, para los países que de verdad
-# vamos a usar en el Cono Sur / madera. Se puede ampliar si se necesita otro país.
+# ISO-2 alias -> official name used in the Annex, for the countries we
+# actually use in the Southern Cone / wood. It can be extended if another
+# country is needed.
 ISO2_TO_ANNEX_NAME = {
     "AR": "Argentina", "BR": "Brazil", "PY": "Paraguay", "BO": "Bolivia (Plurinational State of)",
     "CL": "Chile", "UY": "Uruguay",
-    # nota: Argentina/Brasil/Paraguay/Bolivia no figuran en el Anexo (ni bajo ni alto),
-    # por eso no están en los sets de arriba — son ESTANDAR por descarte, según Art. 1(2)
-    # del propio reglamento.
+    # note: Argentina/Brazil/Paraguay/Bolivia are not in the Annex (neither low nor
+    # high), which is why they are not in the sets above. They are STANDARD by
+    # omission, under Art. 1(2) of the regulation itself.
 }
 
-RISK_ORDER = {"Bajo": 0, "Estándar": 1, "Alto": 2}
+RISK_ORDER = {"Low": 0, "Standard": 1, "High": 2}
 
 
 def country_risk_tier(country_name_or_iso2):
-    """Devuelve 'Bajo' | 'Estándar' | 'Alto' para un país, aceptando nombre
-    completo (como en el Anexo) o código ISO-2 (para los del Cono Sur)."""
+    """Returns 'Low' | 'Standard' | 'High' for a country, accepting the full
+    name (as in the Annex) or an ISO-2 code (for the Southern Cone ones)."""
     name = ISO2_TO_ANNEX_NAME.get(country_name_or_iso2, country_name_or_iso2)
     if name in HIGH_RISK_COUNTRIES:
-        return "Alto"
+        return "High"
     if name in LOW_RISK_COUNTRIES:
-        return "Bajo"
-    return "Estándar"
+        return "Low"
+    return "Standard"

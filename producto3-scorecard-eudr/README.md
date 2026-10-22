@@ -28,7 +28,7 @@ clause behind it.
 
 ```bash
 pip install -r requirements.txt
-python main.py data/proveedores_sinteticos.xlsx -o outputs/
+python main.py data/synthetic_suppliers.xlsx -o outputs/
 ```
 
 Produces `outputs/scorecard.md` and `outputs/scorecard.xlsx` (the Excel
@@ -140,7 +140,7 @@ producto3-scorecard-eudr/
 │   ├── build_synthetic_data.py
 │   └── test_scoring.py
 ├── data/
-│   └── proveedores_sinteticos.xlsx   synthetic test data (9 suppliers)
+│   └── synthetic_suppliers.xlsx   synthetic test data (9 suppliers)
 ├── outputs/example_run/     a sample report already generated, for reference
 └── web/
     ├── scorecard_eudr_web_en.html       web app

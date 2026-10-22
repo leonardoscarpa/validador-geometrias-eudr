@@ -199,7 +199,7 @@
   function yesno(v) {
     if (v === undefined || v === null || String(v).trim() === "") return null;
     const s = String(v).trim().toLowerCase();
-    if (["yes", "si", "sí", "y", "true", "1"].includes(s)) return true;
+    if (["yes", "y", "true", "1"].includes(s)) return true;
     if (["no", "n", "false", "0"].includes(s)) return false;
     return null;
   }
@@ -282,7 +282,7 @@
       if (yesno(rec.MixingRiskDeclared)) s.mixing_risk = true;
       s.total_incidents += num(rec.PriorNonComplianceIncidents, 0);
       const cert = rec.VoluntaryCertification;
-      if (cert && !["none", "ninguna", "no", ""].includes(String(cert).trim().toLowerCase())) {
+      if (cert && !["none", "no", ""].includes(String(cert).trim().toLowerCase())) {
         s.certifications.add(String(cert).trim());
       }
     }

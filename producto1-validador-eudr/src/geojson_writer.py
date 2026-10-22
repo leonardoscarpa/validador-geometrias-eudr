@@ -1,9 +1,9 @@
 """
-Escribe el GeoJSON de salida conforme a la especificación v1.5: FeatureCollection,
-coordenadas redondeadas a 6 decimales, propiedades con capitalización exacta,
-y SOLO las parcelas que no tienen ningún hallazgo de severidad ERROR (las que
-sí tienen ERROR no pueden presentarse tal cual y quedan documentadas en el
-informe de calidad, no en el archivo de salida).
+Writes the output GeoJSON conforming to specification v1.5: FeatureCollection,
+coordinates rounded to 6 decimals, exact property capitalization, and ONLY
+the parcels with no ERROR-severity finding (those with an ERROR cannot be
+submitted as-is and are documented in the quality report, not in the output
+file).
 """
 
 import json

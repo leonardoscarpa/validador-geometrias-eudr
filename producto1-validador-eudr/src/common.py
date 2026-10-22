@@ -1,12 +1,12 @@
-"""Constantes y helpers de bajo nivel compartidos por ingest.py y validators.py."""
+"""Low-level constants and helpers shared by ingest.py and validators.py."""
 
 from .models import Finding, ERROR, WARNING
 
-# Nombres de propiedad EXACTOS que exige la especificación GeoJSON v1.5 del
-# Information System (más CommonName/ScientificName, que agregamos para
-# madera por el Art. 4 del Reglamento de Ejecución 2024/3084 — no son parte
-# del esquema base, pero el sistema ignora silenciosamente propiedades
-# adicionales sintácticamente válidas, así que no rompen conformidad).
+# EXACT property names required by the Information System GeoJSON v1.5
+# specification (plus CommonName/ScientificName, which we add for wood under
+# Art. 4 of Implementing Regulation 2024/3084. They are not part of the base
+# schema, but the system silently ignores additional syntactically valid
+# properties, so they do not break conformance).
 CANONICAL_PROPS = [
     "ProducerName",
     "ProducerCountry",
@@ -23,8 +23,8 @@ MAX_DECIMALS = 6
 MAX_FILE_SIZE_MB = 25
 
 REF_GEOJSON_SPEC = "EUDR GeoJSON File Description v1.5"
-REF_4084 = "Reglamento de Ejecución (UE) 2024/3084"
-REF_ART9 = "Reglamento (UE) 2023/1115, Art. 9"
+REF_4084 = "Implementing Regulation (EU) 2024/3084"
+REF_ART9 = "Regulation (EU) 2023/1115, Art. 9"
 
 
 def canon_prop_lookup():
@@ -32,39 +32,39 @@ def canon_prop_lookup():
 
 
 def check_coordinate_value(lon, lat, parcel_id, vertex_label=""):
-    """Chequea rango (±180/±90) y precisión decimal (máx. 6) de un par de
-    coordenadas crudo. Devuelve una lista de Finding."""
+    """Checks range (±180/±90) and decimal precision (max. 6) of a raw
+    coordinate pair. Returns a list of Findings."""
     findings = []
     where = f" ({vertex_label})" if vertex_label else ""
 
     if lon is None or lat is None:
-        return findings  # otros chequeos ya cubren faltantes
+        return findings  # other checks already cover missing values
 
     try:
         lon_f, lat_f = float(lon), float(lat)
     except (TypeError, ValueError):
         findings.append(Finding(
             ERROR, "COORD_NOT_NUMERIC",
-            f"Coordenada no numérica{where}: lon={lon!r}, lat={lat!r}.",
+            f"Non-numeric coordinate{where}: lon={lon!r}, lat={lat!r}.",
             REF_GEOJSON_SPEC, parcel_id=parcel_id))
         return findings
 
     if not (-180.0 <= lon_f <= 180.0) or not (-90.0 <= lat_f <= 90.0):
         findings.append(Finding(
             ERROR, "COORD_OUT_OF_RANGE",
-            f"Coordenada fuera de rango{where}: lon={lon_f}, lat={lat_f} "
-            "(se esperaba lon en ±180°, lat en ±90°). Sospechá una inversión "
-            "lat/lon si los valores están invertidos respecto de este rango.",
+            f"Coordinate out of range{where}: lon={lon_f}, lat={lat_f} "
+            "(expected lon within ±180°, lat within ±90°). Suspect a lat/lon "
+            "swap if the values would be valid when reversed.",
             REF_GEOJSON_SPEC, parcel_id=parcel_id))
 
-    for val, name in ((lon_f, "longitud"), (lat_f, "latitud")):
+    for val, name in ((lon_f, "longitude"), (lat_f, "latitude")):
         decimals = _count_decimals(val)
         if decimals > MAX_DECIMALS:
             findings.append(Finding(
                 WARNING, "COORD_PRECISION",
-                f"La {name} tiene {decimals} decimales{where} (máximo recomendado: "
-                f"{MAX_DECIMALS}). Más de 6 decimales puede generar coordenadas "
-                "duplicadas por redondeo al procesarse en el sistema.",
+                f"The {name} has {decimals} decimal places{where} (recommended maximum: "
+                f"{MAX_DECIMALS}). More than 6 decimals can produce duplicate "
+                "coordinates through rounding when processed by the system.",
                 REF_GEOJSON_SPEC, parcel_id=parcel_id))
 
     return findings
@@ -73,7 +73,7 @@ def check_coordinate_value(lon, lat, parcel_id, vertex_label=""):
 def _count_decimals(value):
     s = repr(float(value))
     if "e" in s or "E" in s:
-        # notación científica: contamos vía formato fijo con margen amplio
+        # scientific notation: count via fixed format with a wide margin
         s = f"{value:.12f}".rstrip("0")
     if "." not in s:
         return 0
@@ -81,8 +81,8 @@ def _count_decimals(value):
 
 
 def round_coords(geom, ndigits=MAX_DECIMALS):
-    """Redondea todas las coordenadas de una geometría shapely a `ndigits`
-    decimales, preservando el tipo de geometría."""
+    """Rounds all coordinates of a shapely geometry to `ndigits` decimals,
+    preserving the geometry type."""
     from shapely.ops import transform
 
     def _round(x, y, z=None):

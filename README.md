@@ -26,7 +26,7 @@ actual run instead of a demo.
 
 **No file handy to test with?**
 
-- Product 1 sample data: [synthetic_planilla_proveedores.xlsx](https://raw.githubusercontent.com/leonardoscarpa/validador-geometrias-eudr/main/producto1-validador-eudr/data/synthetic_planilla_proveedores.xlsx)
+- Product 1 sample data: [synthetic_supplier_spreadsheet.xlsx](https://raw.githubusercontent.com/leonardoscarpa/validador-geometrias-eudr/main/producto1-validador-eudr/data/synthetic_supplier_spreadsheet.xlsx)
 - Product 3 sample data: [scorecard_input_example.xlsx](https://raw.githubusercontent.com/leonardoscarpa/validador-geometrias-eudr/main/producto3-scorecard-eudr/web/scorecard_input_example.xlsx)
 
 ## Why these three, specifically

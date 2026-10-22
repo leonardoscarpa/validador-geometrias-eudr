@@ -31,36 +31,36 @@ def check(label, input_path, expected_map, output_dir):
         unexpected = detected - set(exp_codes)
         if missing:
             all_ok = False
-            print(f"  ❌ {pid}: FALTAN {missing}  (detectados: {sorted(detected)})")
+            print(f"  ❌ {pid}: MISSING {missing}  (detected: {sorted(detected)})")
         elif not exp_codes and detected:
-            # parcela control: se esperaba CERO hallazgos y hubo alguno
+            # control parcel: ZERO findings expected but there were some
             all_ok = False
-            print(f"  ❌ {pid}: se esperaban 0 hallazgos (control) pero hubo {sorted(detected)}")
+            print(f"  ❌ {pid}: expected 0 findings (control) but got {sorted(detected)}")
         else:
-            tag = "sin hallazgos (control válido)" if not exp_codes else f"OK {sorted(exp_codes)}"
-            extra_note = f"  [+ extra no evaluados: {sorted(unexpected)}]" if unexpected else ""
+            tag = "no findings (valid control)" if not exp_codes else f"OK {sorted(exp_codes)}"
+            extra_note = f"  [+ extra, not evaluated: {sorted(unexpected)}]" if unexpected else ""
             print(f"  ✅ {pid}: {tag}{extra_note}")
 
-    print(f"\n  Total hallazgos: {len(findings)}")
-    print(f"  Parcelas en GeoJSON de salida: {result['n_output_features']}")
-    print(f"  Parcelas excluidas por error bloqueante: {result['n_excluded_parcels']}")
+    print(f"\n  Total findings: {len(findings)}")
+    print(f"  Parcels in output GeoJSON: {result['n_output_features']}")
+    print(f"  Parcels excluded due to blocking error: {result['n_excluded_parcels']}")
     return all_ok
 
 
-ok1 = check("TEST 1 — GeoJSON crudo (synthetic_geojson_input.geojson)",
+ok1 = check("TEST 1: raw GeoJSON (synthetic_geojson_input.geojson)",
             os.path.join(DATA_DIR, "synthetic_geojson_input.geojson"),
             expected["geojson"],
             os.path.join(HERE, "..", "outputs", "test_geojson"))
 
-ok2 = check("TEST 2 — Planilla Excel (synthetic_planilla_proveedores.xlsx)",
-            os.path.join(DATA_DIR, "synthetic_planilla_proveedores.xlsx"),
+ok2 = check("TEST 2: Excel spreadsheet (synthetic_supplier_spreadsheet.xlsx)",
+            os.path.join(DATA_DIR, "synthetic_supplier_spreadsheet.xlsx"),
             expected["tabular"],
             os.path.join(HERE, "..", "outputs", "test_excel"))
 
 print("\n" + "=" * 70)
 if ok1 and ok2:
-    print("RESULTADO FINAL: ✅ el validador detectó TODOS los errores sembrados.")
+    print("FINAL RESULT: ✅ the validator detected ALL seeded errors.")
     sys.exit(0)
 else:
-    print("RESULTADO FINAL: ❌ hay errores sembrados que no se detectaron. Revisar arriba.")
+    print("FINAL RESULT: ❌ some seeded errors were not detected. See above.")
     sys.exit(1)

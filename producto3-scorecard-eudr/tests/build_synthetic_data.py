@@ -8,37 +8,37 @@ def add(pid, producer, country, area, **extra):
     r.update(extra)
     rows.append(r)
 
-# A — Bajo, limpio (Chile, sin nada mas) -> esperado: 0 puntos, Bajo
+# A: Low, clean (Chile, nothing else) -> expected: 0 points, Low
 add("P-A1", "Vivero Andino SRL", "CL", 5)
 
-# B — Estandar solo (Argentina, sin nada mas) -> esperado: 1 punto, Bajo
+# B: Standard only (Argentina, nothing else) -> expected: 1 point, Low
 add("P-B1", "Forestal Don Aparicio", "AR", 4.2)
 
-# C — Estandar + 2 intermediarios -> esperado: 1+1=2, Medio (limite exacto)
+# C: Standard + 2 intermediaries -> expected: 1+1=2, Medium (exact boundary)
 add("P-C1", "Maderera Litoral SA", "AR", 6, SupplyChainIntermediaries=2)
 
-# D — Estandar + pueblos indigenas SIN consulta -> esperado: 1+2=3, Medio
-add("P-D1", "Establecimiento Yaguarete", "AR", 8, IndigenousPeoplesPresence="Si",
+# D: Standard + indigenous peoples WITHOUT consultation -> expected: 1+2=3, Medium
+add("P-D1", "Establecimiento Yaguarete", "AR", 8, IndigenousPeoplesPresence="Yes",
     IndigenousConsultation="No")
 
-# E — compuesto alto: estandar + 3 intermediarios + mezcla + 2 incidentes -> 1+2+2+1=6, Alto
+# E: compound high: standard + 3 intermediaries + mixing + 2 incidents -> 1+2+2+1=6, High
 add("P-E1", "Exportadora del Norte", "BR", 12, SupplyChainIntermediaries=3,
-    MixingRiskDeclared="Si", PriorNonComplianceIncidents=2)
+    MixingRiskDeclared="Yes", PriorNonComplianceIncidents=2)
 
-# F — estandar + certificacion FSC -> 1 - 1.5 = -0.5 -> clamp a 0, Bajo
+# F: standard + FSC certification -> 1 - 1.5 = -0.5 -> clamped to 0, Low
 add("P-F1", "Pinares Certificados SA", "AR", 10, VoluntaryCertification="FSC")
 
-# G — multi-pais (AR estandar + CL bajo) -> debe generar warning y usar el peor (estandar) = 1, Bajo
+# G: multi-country (AR standard + CL low) -> must raise a warning and use the worst (standard) = 1, Low
 add("P-G1", "Cooperativa Binacional", "AR", 3)
 add("P-G2", "Cooperativa Binacional", "CL", 3)
 
-# H — sin ProducerName -> debe excluirse con warning
+# H: no ProducerName -> must be excluded with a warning
 add("P-H1", "", "AR", 2)
 
-# I — pueblos indigenas CON consulta documentada -> 1 + 0.5 = 1.5, Bajo
-add("P-I1", "Yerbatera San Ignacio", "AR", 7, IndigenousPeoplesPresence="Si",
-    IndigenousConsultation="Si")
+# I: indigenous peoples WITH documented consultation -> 1 + 0.5 = 1.5, Low
+add("P-I1", "Yerbatera San Ignacio", "AR", 7, IndigenousPeoplesPresence="Yes",
+    IndigenousConsultation="Yes")
 
 df = pd.DataFrame(rows)
-df.to_excel("data/proveedores_sinteticos.xlsx", index=False)
-print("filas:", len(df), "| proveedores unicos:", df["ProducerName"].nunique())
+df.to_excel("data/synthetic_suppliers.xlsx", index=False)
+print("rows:", len(df), "| unique suppliers:", df["ProducerName"].nunique())

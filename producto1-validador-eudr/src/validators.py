@@ -1,8 +1,8 @@
 """
-Validadores que operan sobre el GeoDataFrame interno ya construido (sin
-importar si vino de GeoJSON, CSV o Excel). Cada función devuelve una lista de
-Finding. `run_all` las corre todas y agrega los hallazgos de nivel de archivo
-(tamaño, cantidad de parcelas, etc.).
+Validators that operate on the already-built internal GeoDataFrame (regardless
+of whether it came from GeoJSON, CSV or Excel). Each function returns a list of
+Findings. `run_all` runs them all and adds file-level findings (size, number of
+parcels, etc.).
 """
 
 import os
@@ -15,15 +15,15 @@ from shapely.geometry.base import BaseGeometry
 from .models import Finding, ERROR, WARNING
 from .common import ALLOWED_GEOM_TYPES, REF_GEOJSON_SPEC, REF_ART9, REF_4084
 
-# Proyección de área equivalente centrada en el Cono Sur (Albers Equal Area
-# Conic, parámetros ajustados a la región). Se usa SOLO para calcular
-# hectáreas de forma consistente; no se exporta nada en esta proyección.
-AEA_CONO_SUR = (
+# Equal-area projection centered on the Southern Cone (Albers Equal Area
+# Conic, parameters tuned to the region). Used ONLY to compute hectares
+# consistently; nothing is exported in this projection.
+AEA_SOUTHERN_CONE = (
     "+proj=aea +lat_1=-5 +lat_2=-42 +lat_0=-32 +lon_0=-60 "
     "+x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs"
 )
 
-_COUNTRY_BOUNDARY_TOLERANCE_DEG = 0.08  # margen por simplificación de fronteras
+_COUNTRY_BOUNDARY_TOLERANCE_DEG = 0.08  # margin for border simplification
 
 
 def _load_country_boundaries(path):
@@ -32,13 +32,13 @@ def _load_country_boundaries(path):
 
 
 def compute_areas_ha(gdf):
-    """Devuelve una Series con el área geodésica en hectáreas de cada geometría
-    (0 para puntos)."""
-    proj = gdf.geometry.to_crs(AEA_CONO_SUR)
+    """Returns a Series with the area in hectares of each geometry
+    (0 for points)."""
+    proj = gdf.geometry.to_crs(AEA_SOUTHERN_CONE)
     return proj.area / 10000.0
 
 
-def run_all(gdf, country_boundaries_path, commodity="madera"):
+def run_all(gdf, country_boundaries_path, commodity="wood"):
     findings = []
 
     if gdf.empty:
@@ -49,9 +49,9 @@ def run_all(gdf, country_boundaries_path, commodity="madera"):
         for d in dupes:
             findings.append(Finding(
                 ERROR, "DUPLICATE_PARCEL_ID",
-                f"El ParcelID '{d}' aparece en más de una parcela del archivo. "
-                "Cada parcela necesita un identificador único.",
-                "Producto 1 — identificación de parcelas", parcel_id=d))
+                f"ParcelID '{d}' appears on more than one parcel in the file. "
+                "Each parcel needs a unique identifier.",
+                "Product 1: parcel identification", parcel_id=d))
 
     areas_ha = compute_areas_ha(gdf)
     countries = _load_country_boundaries(country_boundaries_path)
@@ -64,7 +64,7 @@ def run_all(gdf, country_boundaries_path, commodity="madera"):
         findings.extend(_check_geometry_validity(pid, geom))
         findings.extend(_check_country(pid, row, geom, countries))
         findings.extend(_check_area(pid, row, geom, area_calc))
-        if commodity == "madera":
+        if commodity == "wood":
             findings.extend(_check_species(pid, row))
 
     findings.extend(_check_overlaps(gdf, areas_ha))
@@ -81,20 +81,20 @@ def _check_geometry_validity(pid, geom):
     if gtype not in ALLOWED_GEOM_TYPES:
         findings.append(Finding(
             ERROR, "GEOM_TYPE_UNKNOWN",
-            f"Tipo de geometría final '{gtype}' no admitido.",
+            f"Final geometry type '{gtype}' is not allowed.",
             REF_GEOJSON_SPEC, parcel_id=pid))
         return findings
 
     if gtype in ("Polygon", "MultiPolygon") and not geom.is_valid:
         findings.append(Finding(
             ERROR, "GEOM_SELF_INTERSECTION",
-            "La geometría es inválida (auto-intersectada o mal formada, tipo 'ocho').",
+            "The geometry is invalid (self-intersecting or malformed, e.g. a figure-eight shape).",
             REF_GEOJSON_SPEC, parcel_id=pid))
 
-    # Nota: los huecos (anillos interiores) ya se detectan en ingest.load_geojson
-    # a partir de las coordenadas crudas (Parte GeoJSON). No se repite acá para
-    # no duplicar el mismo hallazgo; este chequeo de validez cubre self-intersection
-    # para cualquier origen de datos (GeoJSON o tabular).
+    # Note: holes (interior rings) are already detected in ingest.load_geojson
+    # from the raw coordinates (GeoJSON part). They are not repeated here to
+    # avoid duplicating the same finding; this validity check covers
+    # self-intersection for any data source (GeoJSON or tabular).
 
     return findings
 
@@ -106,7 +106,7 @@ def _check_country(pid, row, geom, countries):
     if code is None or (isinstance(code, float) and pd.isna(code)) or str(code).strip() == "":
         findings.append(Finding(
             ERROR, "COUNTRY_MISSING",
-            "Falta la propiedad ProducerCountry (obligatoria).",
+            "The ProducerCountry property is missing (required).",
             REF_GEOJSON_SPEC, parcel_id=pid))
         return findings
 
@@ -115,17 +115,17 @@ def _check_country(pid, row, geom, countries):
     if len(code) != 2 or pycountry.countries.get(alpha_2=code) is None:
         findings.append(Finding(
             ERROR, "COUNTRY_INVALID_ISO",
-            f"'{code}' no es un código ISO 3166-1 alpha-2 válido.",
+            f"'{code}' is not a valid ISO 3166-1 alpha-2 code.",
             REF_GEOJSON_SPEC, parcel_id=pid))
         return findings
 
     if code not in countries.index:
         findings.append(Finding(
             WARNING, "COUNTRY_OUT_OF_REFERENCE_SET",
-            f"ProducerCountry='{code}' es válido pero está fuera del set de "
-            "fronteras de referencia cargado (Cono Sur); no se pudo verificar "
-            "coherencia geográfica.",
-            "Producto 1 — set de fronteras de referencia", parcel_id=pid))
+            f"ProducerCountry='{code}' is valid but outside the loaded reference "
+            "border set (Southern Cone); geographic consistency could not be "
+            "verified.",
+            "Product 1: reference border set", parcel_id=pid))
         return findings
 
     boundary = countries.loc[code, "geometry"]
@@ -133,9 +133,9 @@ def _check_country(pid, row, geom, countries):
     if not boundary.buffer(_COUNTRY_BOUNDARY_TOLERANCE_DEG).contains(check_point):
         findings.append(Finding(
             ERROR, "COUNTRY_MISMATCH",
-            f"ProducerCountry='{code}' no coincide con la ubicación real de la "
-            "geometría (el centroide de la parcela cae fuera del país declarado, "
-            "incluso con margen de tolerancia).",
+            f"ProducerCountry='{code}' does not match the actual location of the "
+            "geometry (the parcel centroid falls outside the declared country, "
+            "even with a tolerance margin).",
             REF_GEOJSON_SPEC, parcel_id=pid))
 
     return findings
@@ -153,7 +153,7 @@ def _check_area(pid, row, geom, area_calc_ha):
         except (TypeError, ValueError):
             findings.append(Finding(
                 ERROR, "AREA_NOT_NUMERIC",
-                f"El valor de Area ('{declared}') no es numérico.",
+                f"The Area value ('{declared}') is not numeric.",
                 REF_GEOJSON_SPEC, parcel_id=pid))
             declared_val = None
 
@@ -161,35 +161,35 @@ def _check_area(pid, row, geom, area_calc_ha):
         if declared_val is None:
             findings.append(Finding(
                 WARNING, "POINT_NO_AREA",
-                "La parcela es un Point sin Area declarada. El Information "
-                "System asumirá 4 ha por defecto — riesgo silencioso si la "
-                "parcela real es más grande o más chica.",
+                "The parcel is a Point with no declared Area. The Information "
+                "System will assume 4 ha by default, a silent risk if the "
+                "real parcel is larger or smaller.",
                 REF_GEOJSON_SPEC, parcel_id=pid))
         elif declared_val > 4:
             findings.append(Finding(
                 ERROR, "RULE_4HA_VIOLATION",
-                f"Area declarada = {declared_val} ha (> 4 ha) pero la geometría "
-                "es un Point. Parcelas de más de 4 ha deben declararse como "
-                "polígono, con vértices suficientes para describir el perímetro.",
+                f"Declared Area = {declared_val} ha (> 4 ha) but the geometry "
+                "is a Point. Parcels larger than 4 ha must be declared as a "
+                "polygon, with enough vertices to describe the perimeter.",
                 REF_ART9, parcel_id=pid))
     else:
         if area_calc_ha > 4.0 and declared_val is not None and declared_val <= 4.0:
             findings.append(Finding(
                 WARNING, "AREA_MISMATCH",
-                f"El área calculada de la geometría ({area_calc_ha:.2f} ha) supera "
-                f"4 ha pero el Area declarada ({declared_val} ha) no. Revisar cuál "
-                "de los dos valores es correcto.",
+                f"The computed area of the geometry ({area_calc_ha:.2f} ha) exceeds "
+                f"4 ha but the declared Area ({declared_val} ha) does not. Check which "
+                "of the two values is correct.",
                 REF_GEOJSON_SPEC, parcel_id=pid))
         elif declared_val is not None and area_calc_ha > 1e-4:
-            # umbral de 1e-4 ha (~1 m^2) para no confundir ruido de punto
-            # flotante de geometrías inválidas (auto-intersectadas) con un
-            # área real casi nula
+            # 1e-4 ha threshold (~1 m^2) so floating-point noise from invalid
+            # (self-intersecting) geometries is not mistaken for a real,
+            # nearly zero area
             diff_pct = abs(declared_val - area_calc_ha) / area_calc_ha * 100
             if diff_pct > 15:
                 findings.append(Finding(
                     WARNING, "AREA_MISMATCH",
-                    f"Area declarada ({declared_val} ha) difiere {diff_pct:.0f}% del "
-                    f"área calculada de la geometría ({area_calc_ha:.2f} ha).",
+                    f"Declared Area ({declared_val} ha) differs by {diff_pct:.0f}% from the "
+                    f"computed area of the geometry ({area_calc_ha:.2f} ha).",
                     REF_GEOJSON_SPEC, parcel_id=pid))
 
     return findings
@@ -207,8 +207,8 @@ def _check_species(pid, row):
     if missing:
         findings.append(Finding(
             WARNING, "SPECIES_MISSING",
-            f"Falta(n) {', '.join(missing)}. Para madera, la DDS exige nombre "
-            "común y nombre científico completo de la especie.",
+            f"Missing: {', '.join(missing)}. For wood, the due diligence statement "
+            "requires the common name and full scientific name of the species.",
             f"{REF_4084}, Art. 4", parcel_id=pid))
     return findings
 
@@ -219,7 +219,7 @@ def _check_overlaps(gdf, areas_ha):
     if len(polys) < 2:
         return findings
 
-    proj = polys.geometry.to_crs(AEA_CONO_SUR)
+    proj = polys.geometry.to_crs(AEA_SOUTHERN_CONE)
     proj = proj.reset_index(drop=True)
     pids = polys["ParcelID"].reset_index(drop=True)
 
@@ -236,10 +236,10 @@ def _check_overlaps(gdf, areas_ha):
             seen.add(key)
             geom_j = proj.iloc[j]
             inter = geom_i.intersection(geom_j)
-            if not inter.is_empty and inter.area > 1.0:  # > 1 m^2, ignora ruido de borde
+            if not inter.is_empty and inter.area > 1.0:  # > 1 m^2, ignores edge noise
                 findings.append(Finding(
                     ERROR, "PARCELS_OVERLAP",
-                    f"La parcela '{pids[i]}' se superpone con '{pids[j]}' en "
+                    f"Parcel '{pids[i]}' overlaps with '{pids[j]}' by "
                     f"{inter.area / 10000:.3f} ha.",
                     REF_GEOJSON_SPEC, parcel_id=f"{pids[i]} / {pids[j]}"))
 
