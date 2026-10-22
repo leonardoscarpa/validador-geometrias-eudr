@@ -12,8 +12,7 @@ Ships in two forms that share the exact same scoring logic:
 - **Python package** — tested, run from the command line, produces
   Markdown + Excel reports.
 - **Web app** (`web/`) — a single HTML file, no install, drag a spreadsheet
-  in and get a color-coded, interactive result. Available in Spanish and
-  English.
+  in and get a color-coded, interactive result.
 
 ## Why this product exists
 
@@ -38,11 +37,9 @@ edit the underlying data).
 
 ### Web app
 
-Open `web/scorecard_eudr_web_en.html` (or the Spanish version,
-`scorecard_eudr_web.html`) directly in a browser. Nothing to install,
+Open `web/scorecard_eudr_web_en.html` directly in a browser. Nothing to install,
 nothing sent to any server. Don't have a file to test with? Use
-`web/scorecard_input_example.xlsx` (English) or
-`web/scorecard_input_ejemplo.xlsx` (Spanish) — already verified to load
+`web/scorecard_input_example.xlsx`, already verified to load
 correctly, including with the actual browser spreadsheet library
 (SheetJS), not just with Python.
 
@@ -146,8 +143,6 @@ producto3-scorecard-eudr/
 │   └── proveedores_sinteticos.xlsx   synthetic test data (9 suppliers)
 ├── outputs/example_run/     a sample report already generated, for reference
 └── web/
-    ├── scorecard_eudr_web.html          web app, Spanish
-    ├── scorecard_eudr_web_en.html       web app, English
-    ├── scorecard_input_ejemplo.xlsx     sample input to upload, Spanish
-    └── scorecard_input_example.xlsx     sample input to upload, English
+    ├── scorecard_eudr_web_en.html       web app
+    └── scorecard_input_example.xlsx     sample input to upload
 ```
